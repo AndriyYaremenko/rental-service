@@ -1268,6 +1268,33 @@ describe('allocatePayments', () => {
     allocatePayments(list, 0)
     expect(list[0]!.id).toBe('feb')
   })
+
+  it('нульовий рахунок вважається оплаченим, а не вічним боргом', () => {
+    // covered === 0 і covered === totalKop істинні одночасно.
+    // Порядок перевірок у тернарнику вирішує; має перемогти PAID.
+    const zero = inv('zero', 2026, 1, 0)
+    const r = allocatePayments([zero], 0)
+    expect(r.byInvoiceId.get('zero')!).toEqual({ coveredKop: 0, status: 'PAID' })
+    expect(r.advanceKop).toBe(0)
+  })
+
+  it('нульовий рахунок не з’їдає оплату', () => {
+    const zero = inv('zero', 2026, 1, 0)
+    const r = allocatePayments([zero, jan], 100_000)
+    expect(r.byInvoiceId.get('zero')!.status).toBe('PAID')
+    expect(r.byInvoiceId.get('jan')!.status).toBe('PAID')
+    expect(r.advanceKop).toBe(0)
+  })
+
+  it('createdAt розводить рахунки за той самий місяць', () => {
+    const early = { id: 'early', year: 2026, month: 1, totalKop: 100_000,
+                    createdAt: new Date(Date.UTC(2026, 0, 5)) }
+    const late = { id: 'late', year: 2026, month: 1, totalKop: 100_000,
+                   createdAt: new Date(Date.UTC(2026, 0, 20)) }
+    const r = allocatePayments([late, early], 100_000)
+    expect(r.byInvoiceId.get('early')!.status).toBe('PAID')
+    expect(r.byInvoiceId.get('late')!.status).toBe('UNPAID')
+  })
 })
 ```
 
@@ -1313,10 +1340,13 @@ export function allocatePayments(
     const coveredKop = Math.min(pool, invoice.totalKop)
     pool -= coveredKop
 
+    // PAID перевіряється ПЕРШИМ: для рахунку на нульову суму умови
+    // `coveredKop === 0` і `coveredKop === totalKop` істинні одночасно,
+    // а рахунок на 0 грн нічого не вимагає, отже закритий.
     const status: InvoiceStatus =
-      coveredKop === 0 ? 'UNPAID'
-      : coveredKop < invoice.totalKop ? 'PARTIAL'
-      : 'PAID'
+      coveredKop === invoice.totalKop ? 'PAID'
+      : coveredKop === 0 ? 'UNPAID'
+      : 'PARTIAL'
 
     byInvoiceId.set(invoice.id, { coveredKop, status })
   }
@@ -1328,7 +1358,7 @@ export function allocatePayments(
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/allocation.test.ts`
-Expected: PASS — 8 passed
+Expected: PASS — 11 passed
 
 - [ ] **Step 5: Коміт**
 
