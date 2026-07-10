@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  // url навмисно відсутній — живе в prisma.config.ts (Prisma 7)
+}
+
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  role         Role     @default(USER)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Location {
+  id        String     @id @default(cuid())
+  name      String
+  address   String
+  notes     String?
+  premises  Premises[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Premises {
+  id         String         @id @default(cuid())
+  locationId String
+  location   Location       @relation(fields: [locationId], references: [id], onDelete: Restrict)
+  unitNumber String
+  type       String
+  floor      Int?
+  areaM2     Decimal
+  notes      String?
+  leases     Lease[]
+  readings   MeterReading[]
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  @@unique([locationId, unitNumber])
+}
+
+model Tenant {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  email     String?
+  taxCode   String?
+  notes     String?
+  leases    Lease[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lease {
+  id         String    @id @default(cuid())
+  premisesId String
+  premises   Premises  @relation(fields: [premisesId], references: [id], onDelete: Restrict)
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  startDate  DateTime
+  endDate    DateTime?
+  rentKop    Int
+  garbageKop Int
+  invoices   Invoice[]
+  payments   Payment[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([premisesId, startDate])
+  @@index([tenantId])
+}
+
+model Tariff {
+  id                 String   @id @default(cuid())
+  effectiveFrom      DateTime @unique
+  electricityRateKop Int
+  waterRateKop       Int
+  createdAt          DateTime @default(now())
+}
+
+model MeterReading {
+  id          String   @id @default(cuid())
+  premisesId  String
+  premises    Premises @relation(fields: [premisesId], references: [id], onDelete: Cascade)
+  year        Int
+  month       Int
+  electricity Decimal
+  water       Decimal
+
+  electricityReplaced        Boolean  @default(false)
+  electricityReplacedInitial Decimal?
+  waterReplaced              Boolean  @default(false)
+  waterReplacedInitial       Decimal?
+
+  readAt    DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([premisesId, year, month])
+}
+
+model Invoice {
+  id      String @id @default(cuid())
+  leaseId String
+  lease   Lease  @relation(fields: [leaseId], references: [id], onDelete: Restrict)
+  year    Int
+  month   Int
+
+  electricityRateKop Int
+  waterRateKop       Int
+
+  prevElectricity Decimal
+  currElectricity Decimal
+  electricityUsed Decimal
+  prevWater       Decimal
+  currWater       Decimal
+  waterUsed       Decimal
+
+  rentKop        Int
+  electricityKop Int
+  waterKop       Int
+  garbageKop     Int
+  totalKop       Int
+
+  createdAt DateTime @default(now())
+
+  @@unique([leaseId, year, month])
+  @@index([year, month])
+}
+
+model Payment {
+  id        String        @id @default(cuid())
+  leaseId   String
+  lease     Lease         @relation(fields: [leaseId], references: [id], onDelete: Restrict)
+  date      DateTime
+  amountKop Int
+  method    PaymentMethod
+  note      String?
+  createdAt DateTime      @default(now())
+
+  @@index([leaseId, date])
+}

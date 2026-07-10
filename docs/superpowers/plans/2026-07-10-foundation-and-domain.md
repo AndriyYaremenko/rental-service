@@ -21,6 +21,18 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 
 - **Prisma 7:** генератор `provider = "prisma-client"` з обовʼязковим `output`.
   `prisma-client-js` — legacy, не використовувати.
+- **`datasource` у схемі НЕ містить `url`.** Prisma 7 відхиляє це помилкою
+  `P1012`. Рядок підключення — у `prisma.config.ts`, а `PrismaClient` вимагає
+  driver adapter (`@prisma/adapter-better-sqlite3`).
+- **`DATABASE_URL="file:./prisma/dev.db"`** — з явним `prisma/`. Адаптер
+  резолвить шлях відносно робочого каталогу процесу, а не каталогу схеми.
+- **Enum у PSL — кожне значення на окремому рядку.** Однорядковий
+  `enum Role { ADMIN USER }` невалідний і падає з `P1012`.
+- **TypeScript запінено на `^6.0.3`. Не оновлювати до 7.** `typescript@latest`
+  зараз 7.0.2 — нативний Go-порт із перебудованим пакетом. `next@16.2.10`
+  резолвить TS хардкодом `typescript/lib/typescript.js` з `exportsRestrict: true`
+  (`next/dist/build/type-check.js`), а `exports`-мапа TS 7 такого шляху не має →
+  `require(undefined)` і падіння `next build`. Перевірено на джерелах Next.
 - **Гроші — тільки цілі копійки (`Int`).** `Decimal` дозволений виключно для
   фізичних величин: показники лічильників, площа. Жодних `float` для сум.
 - **Округлення — рівно один раз**, при формуванні рядка рахунку, режим
@@ -31,8 +43,11 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
   `Invoice.status`, `Premises.status`, `Lease.status`.
 - **Активність договору в місяці визначається тільки датами**, ніколи статусом.
 - **Мова:** ідентифікатори англійською, повідомлення помилок і коміти українською.
-- **TDD-цикл обовʼязковий:** написати падаючий тест → переконатися, що падає →
-  мінімальна реалізація → переконатися, що проходить → коміт.
+- **TDD-цикл обовʼязковий для поведінки** (`src/domain/**`, seed): написати
+  падаючий тест → переконатися, що падає → мінімальна реалізація →
+  переконатися, що проходить → коміт. Задачі каркаса (Task 1) поведінки не
+  містять і перевіряються типізацією та запуском набору тестів — не вигадуй
+  фіктивний модуль лише заради того, щоб було що імпортувати в тесті.
 - **`bcryptjs`**, а не `bcrypt`: чистий JS, не потребує нативної збірки на Windows.
 - Enum на SQLite валідується лише на рівні ORM — база не захистить.
 
@@ -40,7 +55,8 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 
 | Файл | Відповідальність |
 |---|---|
-| `prisma/schema.prisma` | схема БД |
+| `prisma.config.ts` | конфіг Prisma 7: шлях схеми, міграцій, `datasource.url` |
+| `prisma/schema.prisma` | схема БД (без `url` — див. Global Constraints) |
 | `prisma/seed-data.ts` | функція `seed()` — тестові дані |
 | `prisma/seed.ts` | тонкий CLI-обгортник над `seed()` |
 | `src/server/db.ts` | singleton PrismaClient |
@@ -69,12 +85,16 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `vitest.config.ts`
 - Create: `.gitignore`, `.gitattributes`, `.env`, `.env.example`
 - Create: `postcss.config.mjs`, `src/app/globals.css`, `src/app/layout.tsx`, `src/app/page.tsx`
-- Test: `tests/smoke.test.ts`
+- Create: `tests/setup.ts`
 
 **Interfaces:**
 - Consumes: нічого (перша задача)
 - Produces: npm-скрипти `test`, `dev`, `db:migrate`, `db:generate`, `db:seed`;
   alias `@/*` → `src/*` і в TS, і у Vitest
+
+Тестового файлу тут немає навмисно: у каркасі немає поведінки, яку варто
+перевіряти. Резолвінг alias `@/` по-справжньому доводить Task 2, де тест
+імпортує `@/server/db`. Модуль-заглушка заради smoke-тесту був би зайвим кодом.
 
 - [ ] **Step 1: Ініціалізувати package.json і встановити залежності**
 
@@ -82,9 +102,11 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 npm init -y
 npm pkg set name="rental-service" private=true
 npm install next@16 react@19 react-dom@19 @prisma/client@7 decimal.js zod@4 bcryptjs
-npm install -D typescript @types/node @types/react @types/react-dom \
+npm install -D typescript@6 @types/node @types/react @types/react-dom \
   prisma@7 tsx vitest@4 tailwindcss@4 @tailwindcss/postcss@4 dotenv
 ```
+
+`typescript@6` запінено свідомо — сімка ламає `next build` (див. Global Constraints).
 
 `dotenv` потрібен саме для тестів: `.env` читають Prisma CLI і Next.js, але
 **не Vitest**. Без нього Prisma Client не побачить `DATABASE_URL`.
@@ -237,45 +259,32 @@ export default function Home() {
 }
 ```
 
-- [ ] **Step 5: Написати падаючий smoke-тест**
+- [ ] **Step 5: Перевірити типізацію**
 
-`tests/smoke.test.ts`:
-```ts
-import { describe, expect, it } from 'vitest'
+Run: `npx tsc --noEmit`
+Expected: без помилок (жодного виводу, код виходу 0)
 
-describe('тестове оточення', () => {
-  it('вміє резолвити alias @/', async () => {
-    const { APP_NAME } = await import('@/domain/constants')
-    expect(APP_NAME).toBe('rental-service')
-  })
-})
-```
+- [ ] **Step 6: Перевірити, що Vitest стартує з порожнім набором**
 
-- [ ] **Step 6: Запустити тест і переконатися, що падає**
+Run: `npm test -- --passWithNoTests`
+Expected: `No test files found` і код виходу 0.
+Це доводить, що `vitest.config.ts` і `tests/setup.ts` коректні —
+`dotenv` завантажується без помилок.
 
-Run: `npm test`
-Expected: FAIL — `Cannot find module '@/domain/constants'`
+- [ ] **Step 7: Перевірити, що Next.js збирається**
 
-- [ ] **Step 7: Мінімальна реалізація**
+Run: `npm run build`
+Expected: збірка успішна, сторінка `/` у списку маршрутів
 
-`src/domain/constants.ts`:
-```ts
-export const APP_NAME = 'rental-service'
-```
-
-- [ ] **Step 8: Запустити тест і переконатися, що проходить**
-
-Run: `npm test`
-Expected: PASS — 1 passed
-
-- [ ] **Step 9: Коміт**
+- [ ] **Step 8: Коміт**
 
 ```bash
 git add -A
 git commit -m "chore: каркас Next.js, TypeScript і Vitest
 
 Скафолд зроблено вручну: create-next-app відмовляється працювати
-в непорожній директорії. .gitattributes фіксує LF."
+в непорожній директорії. .gitattributes фіксує LF.
+Тестів немає навмисно — у каркасі немає поведінки."
 ```
 
 ---
@@ -283,7 +292,8 @@ git commit -m "chore: каркас Next.js, TypeScript і Vitest
 ### Task 2: Prisma-схема, міграція і клієнт
 
 **Files:**
-- Create: `prisma/schema.prisma`, `src/server/db.ts`
+- Create: `prisma.config.ts`, `prisma/schema.prisma`, `src/server/db.ts`
+- Modify: `.env`, `.env.example`, `.gitignore`
 - Test: `tests/db.test.ts`
 
 **Interfaces:**
@@ -292,7 +302,39 @@ git commit -m "chore: каркас Next.js, TypeScript і Vitest
   моделі `User`, `Location`, `Premises`, `Tenant`, `Lease`, `Tariff`,
   `MeterReading`, `Invoice`, `Payment`; enum `Role`, `PaymentMethod`
 
-- [ ] **Step 1: Написати схему**
+- [ ] **Step 1: Встановити адаптер і налаштувати Prisma 7**
+
+Prisma 7 не приймає `url` у схемі й вимагає driver adapter.
+
+```bash
+npm install @prisma/adapter-better-sqlite3@7
+```
+
+Виправити `DATABASE_URL` у `.env` та `.env.example` — шлях резолвиться
+відносно робочого каталогу процесу, тому `prisma/` вказуємо явно:
+```
+DATABASE_URL="file:./prisma/dev.db"
+```
+
+`prisma.config.ts` у корені проєкту:
+```ts
+import 'dotenv/config'
+import { defineConfig, env } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: { path: 'prisma/migrations' },
+  datasource: { url: env('DATABASE_URL') },
+})
+```
+
+Додати до `.gitignore` побічні файли SQLite у режимі WAL:
+```
+prisma/*.db-wal
+prisma/*.db-shm
+```
+
+- [ ] **Step 2: Написати схему**
 
 `prisma/schema.prisma`:
 ```prisma
@@ -303,11 +345,19 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // url навмисно відсутній — живе в prisma.config.ts (Prisma 7)
 }
 
-enum Role          { ADMIN USER }
-enum PaymentMethod { CASH CARD BANK }
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK
+}
 
 model User {
   id           String   @id @default(cuid())
@@ -454,25 +504,26 @@ model Payment {
 `prevElectricity` зберігає **базу розрахунку**: звичайний попередній показник
 або початковий показник нового лічильника, якщо його міняли.
 
-- [ ] **Step 2: Створити міграцію**
+- [ ] **Step 3: Створити міграцію**
 
 Run: `npm run db:migrate -- --name init`
 Expected: створено `prisma/migrations/<timestamp>_init/migration.sql`,
 у консолі — `Your database is now in sync with your schema.`
 
-Перевір, що файл бази справді зʼявився поруч зі схемою:
+Перевір, що файл бази лежить саме там, де його чекає `.gitignore`:
 
-Run: `ls prisma/dev.db`
-Expected: файл існує. SQLite-шлях `file:./dev.db` резолвиться відносно
-каталогу `prisma/`, а не кореня проєкту.
+Run: `ls prisma/dev.db && git status --porcelain`
+Expected: файл існує, і `git status` **не показує** його як untracked.
+Якщо база опинилася в корені репозиторію — зупинись і повідом: це справжня
+проблема, а не дрібниця.
 
-- [ ] **Step 3: Згенерувати клієнт і підтвердити шлях імпорту**
+- [ ] **Step 4: Згенерувати клієнт і підтвердити шлях імпорту**
 
 Run: `npm run db:generate && ls src/generated/prisma`
 Expected: у каталозі є `client.ts` (або `index.ts`) та `.d.ts`-файли.
 Запамʼятай точну назву — вона потрібна в наступному кроці. Не вгадуй її.
 
-- [ ] **Step 4: Написати падаючий тест на підключення**
+- [ ] **Step 5: Написати падаючий тест на підключення**
 
 `tests/db.test.ts`:
 ```ts
@@ -480,58 +531,90 @@ import { describe, expect, it } from 'vitest'
 import { prisma } from '@/server/db'
 
 describe('підключення до БД', () => {
-  it('виконує запит до таблиці користувачів', async () => {
-    // Навмисно не перевіряємо конкретну кількість: seed з Task 11
-    // наповнює ту саму базу, і жорстка нуль-перевірка зробила б
-    // цей тест залежним від порядку запуску.
-    const count = await prisma.user.count()
-    expect(count).toBeGreaterThanOrEqual(0)
+  it('робить повний цикл запис-читання-видалення', async () => {
+    // Перевіряє одразу три речі, і кожна з них може зламатися:
+    // міграція створила таблиці, клієнт згенерований, зʼєднання живе.
+    const created = await prisma.location.create({
+      data: { name: 'Тестова локація', address: 'вул. Тестова, 1' },
+    })
+
+    const found = await prisma.location.findUniqueOrThrow({ where: { id: created.id } })
+    expect(found.name).toBe('Тестова локація')
+    expect(found.address).toBe('вул. Тестова, 1')
+
+    await prisma.location.delete({ where: { id: created.id } })
+    expect(await prisma.location.findUnique({ where: { id: created.id } })).toBeNull()
   })
 
-  it('бачить усі очікувані моделі', () => {
-    for (const model of ['user', 'location', 'premises', 'tenant', 'lease',
-                         'tariff', 'meterReading', 'invoice', 'payment'] as const) {
-      expect(prisma[model]).toBeDefined()
-    }
+  it('зберігає площу приміщення як Decimal без втрати знаків', async () => {
+    const location = await prisma.location.create({
+      data: { name: 'Локація для площі', address: 'вул. Тестова, 2' },
+    })
+    const premises = await prisma.premises.create({
+      data: { locationId: location.id, unitNumber: '1', type: 'офіс', areaM2: '54.30' },
+    })
+
+    const found = await prisma.premises.findUniqueOrThrow({ where: { id: premises.id } })
+    expect(found.areaM2.toString()).toBe('54.3')
+
+    await prisma.premises.delete({ where: { id: premises.id } })
+    await prisma.location.delete({ where: { id: location.id } })
   })
 })
 ```
 
-- [ ] **Step 5: Запустити тест і переконатися, що падає**
+Тести прибирають за собою, тому не залежать від seed із Task 11
+і не заважають йому.
+
+- [ ] **Step 6: Запустити тест і переконатися, що падає**
 
 Run: `npm test -- tests/db.test.ts`
 Expected: FAIL — `Cannot find module '@/server/db'`
 
-- [ ] **Step 6: Реалізувати singleton клієнта**
+- [ ] **Step 7: Реалізувати singleton клієнта**
 
-`src/server/db.ts` (шлях імпорту — той, що підтверджено в Step 3):
+`src/server/db.ts` (шлях імпорту клієнта — той, що підтверджено в Step 4):
 ```ts
 // Відносний шлях, НЕ alias '@/': seed запускається через tsx,
 // який не резолвить paths із tsconfig.
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../generated/prisma/client'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+function createClient(): PrismaClient {
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('DATABASE_URL не задано')
+  // Prisma 7 вимагає driver adapter — без нього конструктор кидає помилку
+  return new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) })
+}
+
+export const prisma = globalForPrisma.prisma ?? createClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 ```
 
+Тут навмисно немає `import 'dotenv/config'`: `dotenv` — devDependency, і
+продакшн-збірка не повинна від нього залежати. Змінні підвантажують ті, кому
+це потрібно: Next.js робить це сам, тести — через `tests/setup.ts`,
+seed-скрипт — власним імпортом (Task 11).
+
 Singleton потрібен, бо hot-reload у dev інакше плодить підключення.
 Тести імпортують цей модуль як `@/server/db` — alias резолвить Vitest.
 
-- [ ] **Step 7: Запустити тест і переконатися, що проходить**
+- [ ] **Step 8: Запустити тест і переконатися, що проходить**
 
 Run: `npm test -- tests/db.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: Коміт**
+- [ ] **Step 9: Коміт**
 
 ```bash
 git add -A
 git commit -m "feat: Prisma-схема, початкова міграція, singleton клієнта
 
-Генератор prisma-client (Prisma 7), не legacy prisma-client-js.
+Prisma 7: генератор prisma-client, url переїхав у prisma.config.ts,
+PrismaClient отримує driver adapter better-sqlite3.
 Похідні статуси в схемі відсутні навмисно."
 ```
 
@@ -581,8 +664,17 @@ export interface TariffRates {
   waterRateKop: Kop
 }
 
+// Поля дзеркалять рядок Invoice у схемі: API розпаковує це прямо в Prisma.
+// (Розширено після фінального огляду гілки — щоб персистенція була копією
+//  доменного результату, а не реконструкцією бази.)
 export interface InvoiceLines {
+  electricityRateKop: Kop
+  waterRateKop: Kop
+  prevElectricity: Decimal
+  currElectricity: Decimal
   electricityUsed: Decimal
+  prevWater: Decimal
+  currWater: Decimal
   waterUsed: Decimal
   rentKop: Kop
   electricityKop: Kop
@@ -646,7 +738,12 @@ import { describe, expect, it } from 'vitest'
 import { InvalidAmountError } from '@/domain/errors'
 import { formatUah, fromKop, roundHalfUp, toKop } from '@/domain/money'
 
-const nbsp = / /g
+/**
+ * Intl для uk-UA розділяє тисячі нерозривним пробілом (U+00A0).
+ * Нормалізуємо будь-який пробільний символ, щоб тест не залежав від
+ * версії ICU: різні збірки дають то U+00A0, то U+202F.
+ */
+const normalizeSpaces = (s: string) => s.replace(/\s/g, ' ')
 
 describe('toKop', () => {
   it('переводить рядок у копійки', () => {
@@ -695,7 +792,11 @@ describe('roundHalfUp', () => {
 
 describe('formatUah', () => {
   it('форматує українською з групуванням', () => {
-    expect(formatUah(123456).replace(nbsp, ' ')).toBe('1 234,56 грн')
+    expect(normalizeSpaces(formatUah(123456))).toBe('1 234,56 грн')
+  })
+
+  it('показує копійки навіть для круглої суми', () => {
+    expect(normalizeSpaces(formatUah(100000))).toBe('1 000,00 грн')
   })
 })
 ```
@@ -762,7 +863,7 @@ export function roundHalfUp(value: Decimal): Kop {
 - [ ] **Step 5: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/money.test.ts`
-Expected: PASS — 10 passed
+Expected: PASS — 11 passed
 
 - [ ] **Step 6: Коміт**
 
@@ -943,6 +1044,7 @@ git commit -m "feat(domain): споживання з підтримкою зам
 ```ts
 import { Decimal } from 'decimal.js'
 import { describe, expect, it } from 'vitest'
+import { NoPreviousReadingError } from '@/domain/errors'
 import { buildInvoice, type BuildInvoiceInput } from '@/domain/invoice'
 
 const input = (o: Partial<BuildInvoiceInput> = {}): BuildInvoiceInput => ({
@@ -979,7 +1081,7 @@ describe('buildInvoice', () => {
     expect(lines.totalKop).toBe(1_055_975)
   })
 
-  it('округлює кожен рядок half-up', () => {
+  it('округлює кожен рядок до копійки', () => {
     const lines = buildInvoice(input({
       water: {
         curr: new Decimal('3.333'), prev: new Decimal(0),
@@ -988,6 +1090,30 @@ describe('buildInvoice', () => {
     }))
     // 3.333 * 1250 = 4166.25 -> 4166
     expect(lines.waterKop).toBe(4166)
+  })
+
+  it('на точній половині копійки округлює вгору, а не до парного', () => {
+    const lines = buildInvoice(input({
+      water: {
+        curr: new Decimal('3.3332'), prev: new Decimal(0),
+        replaced: false, replacedInitial: null,
+      },
+    }))
+    // 3.3332 * 1250 = 4166.5 рівно — справжня «нічия».
+    // half-up дає 4167; банківське округлення дало б 4166 (парне).
+    // Попередній тест (.25) цього не розрізняє: там усі режими дають 4166.
+    expect(lines.waterKop).toBe(4167)
+  })
+
+  it('пропускає помилку consumption назовні, не обгортаючи її', () => {
+    expect(() =>
+      buildInvoice(input({
+        electricity: {
+          curr: new Decimal(150), prev: null,
+          replaced: false, replacedInitial: null,
+        },
+      })),
+    ).toThrow(NoPreviousReadingError)
   })
 
   it('усі грошові поля лишаються цілими', () => {
@@ -1042,6 +1168,8 @@ export interface BuildInvoiceInput {
  * які бачить орендар у роздруківці.
  */
 export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
+  const prevElectricity = consumptionBase(input.electricity)
+  const prevWater = consumptionBase(input.water)
   const electricityUsed = consumption(input.electricity)
   const waterUsed = consumption(input.water)
 
@@ -1050,7 +1178,13 @@ export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
   const { rentKop, garbageKop } = input.terms
 
   return {
+    electricityRateKop: input.rates.electricityRateKop,
+    waterRateKop: input.rates.waterRateKop,
+    prevElectricity,
+    currElectricity: input.electricity.curr,
     electricityUsed,
+    prevWater,
+    currWater: input.water.curr,
     waterUsed,
     rentKop,
     electricityKop,
@@ -1064,7 +1198,7 @@ export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/invoice.test.ts`
-Expected: PASS — 5 passed
+Expected: PASS — 7 passed
 
 - [ ] **Step 5: Коміт**
 
@@ -1151,6 +1285,33 @@ describe('allocatePayments', () => {
     allocatePayments(list, 0)
     expect(list[0]!.id).toBe('feb')
   })
+
+  it('нульовий рахунок вважається оплаченим, а не вічним боргом', () => {
+    // covered === 0 і covered === totalKop істинні одночасно.
+    // Порядок перевірок у тернарнику вирішує; має перемогти PAID.
+    const zero = inv('zero', 2026, 1, 0)
+    const r = allocatePayments([zero], 0)
+    expect(r.byInvoiceId.get('zero')!).toEqual({ coveredKop: 0, status: 'PAID' })
+    expect(r.advanceKop).toBe(0)
+  })
+
+  it('нульовий рахунок не з’їдає оплату', () => {
+    const zero = inv('zero', 2026, 1, 0)
+    const r = allocatePayments([zero, jan], 100_000)
+    expect(r.byInvoiceId.get('zero')!.status).toBe('PAID')
+    expect(r.byInvoiceId.get('jan')!.status).toBe('PAID')
+    expect(r.advanceKop).toBe(0)
+  })
+
+  it('createdAt розводить рахунки за той самий місяць', () => {
+    const early = { id: 'early', year: 2026, month: 1, totalKop: 100_000,
+                    createdAt: new Date(Date.UTC(2026, 0, 5)) }
+    const late = { id: 'late', year: 2026, month: 1, totalKop: 100_000,
+                   createdAt: new Date(Date.UTC(2026, 0, 20)) }
+    const r = allocatePayments([late, early], 100_000)
+    expect(r.byInvoiceId.get('early')!.status).toBe('PAID')
+    expect(r.byInvoiceId.get('late')!.status).toBe('UNPAID')
+  })
 })
 ```
 
@@ -1196,10 +1357,13 @@ export function allocatePayments(
     const coveredKop = Math.min(pool, invoice.totalKop)
     pool -= coveredKop
 
+    // PAID перевіряється ПЕРШИМ: для рахунку на нульову суму умови
+    // `coveredKop === 0` і `coveredKop === totalKop` істинні одночасно,
+    // а рахунок на 0 грн нічого не вимагає, отже закритий.
     const status: InvoiceStatus =
-      coveredKop === 0 ? 'UNPAID'
-      : coveredKop < invoice.totalKop ? 'PARTIAL'
-      : 'PAID'
+      coveredKop === invoice.totalKop ? 'PAID'
+      : coveredKop === 0 ? 'UNPAID'
+      : 'PARTIAL'
 
     byInvoiceId.set(invoice.id, { coveredKop, status })
   }
@@ -1211,7 +1375,7 @@ export function allocatePayments(
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/allocation.test.ts`
-Expected: PASS — 8 passed
+Expected: PASS — 11 passed
 
 - [ ] **Step 5: Коміт**
 
@@ -1271,6 +1435,33 @@ describe('advanceKop', () => {
     expect(advanceKop(200_000, 50_000)).toBe(0)
   })
 })
+
+describe('нульовий баланс', () => {
+  it('борг і аванс одночасно нульові', () => {
+    expect(balanceKop(100_000, 100_000)).toBe(0)
+    expect(debtKop(100_000, 100_000)).toBe(0)
+    expect(advanceKop(100_000, 100_000)).toBe(0)
+  })
+
+  it('аванс не повертає мінус-нуль', () => {
+    // -balanceKop(x, x) обчислюється в -0; Math.max(0, -0) нормалізує до +0.
+    // Реалізація на кшталт -Math.min(0, balance) повернула б -0,
+    // і toBe(0) (він працює через Object.is) це спіймав би, а === ні.
+    expect(Object.is(advanceKop(100_000, 100_000), -0)).toBe(false)
+    expect(Object.is(debtKop(100_000, 100_000), -0)).toBe(false)
+  })
+
+  it('борг і аванс взаємно виключні', () => {
+    const cases: ReadonlyArray<readonly [number, number]> = [
+      [200_000, 50_000],   // борг
+      [100_000, 150_000],  // аванс
+      [100_000, 100_000],  // нуль
+    ]
+    for (const [invoiced, paid] of cases) {
+      expect(Math.min(debtKop(invoiced, paid), advanceKop(invoiced, paid))).toBe(0)
+    }
+  })
+})
 ```
 
 - [ ] **Step 2: Запустити тести і переконатися, що падають**
@@ -1284,15 +1475,23 @@ Expected: FAIL — `Cannot find module '@/domain/debt'`
 ```ts
 import type { Kop } from './types'
 
-/** Додатнє — борг, відʼємне — аванс. */
+/** Додатнє — борг, відʼємне — аванс. Єдине місце, де виконується віднімання. */
 export function balanceKop(totalInvoicedKop: Kop, totalPaidKop: Kop): number {
   return totalInvoicedKop - totalPaidKop
 }
 
+/** Борг орендаря. Нуль, якщо він переплатив, — відʼємного боргу не буває. */
 export function debtKop(totalInvoicedKop: Kop, totalPaidKop: Kop): Kop {
   return Math.max(0, balanceKop(totalInvoicedKop, totalPaidKop))
 }
 
+/**
+ * Переплата орендаря. Нуль, якщо він у боргу.
+ *
+ * `Math.max(0, …)` тут не лише відсікає відʼємне: при нульовому балансі
+ * вираз `-0` нормалізується до `+0`. Реалізація `-Math.min(0, balance)`
+ * виглядає еквівалентною, але повертає `-0`.
+ */
 export function advanceKop(totalInvoicedKop: Kop, totalPaidKop: Kop): Kop {
   return Math.max(0, -balanceKop(totalInvoicedKop, totalPaidKop))
 }
@@ -1301,7 +1500,7 @@ export function advanceKop(totalInvoicedKop: Kop, totalPaidKop: Kop): Kop {
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/debt.test.ts`
-Expected: PASS — 6 passed
+Expected: PASS — 9 passed
 
 - [ ] **Step 5: Коміт**
 
@@ -1360,6 +1559,12 @@ describe('межі місяця', () => {
   it('останній день лютого високосного року', () => {
     expect(lastDayOfMonth(2028, 2).toISOString()).toBe('2028-02-29T23:59:59.999Z')
   })
+
+  it('останній день грудня лишається в тому самому році', () => {
+    // Date.UTC(2026, 12, 0) переповнює місяць у січень 2027,
+    // а день 0 відкочує назад на 31 грудня 2026.
+    expect(lastDayOfMonth(2026, 12).toISOString()).toBe('2026-12-31T23:59:59.999Z')
+  })
 })
 
 describe('leaseState', () => {
@@ -1376,6 +1581,20 @@ describe('leaseState', () => {
   it('договір із минулою датою завершення завершений', () => {
     const p: Period = { startDate: utc(2026, 1, 1), endDate: utc(2026, 3, 31) }
     expect(leaseState(p, utc(2026, 7, 10))).toBe('ENDED')
+  })
+
+  it('договір, що завершується сьогодні, ще активний', () => {
+    // endDate включно. Без цього тесту мутація `>=` на `>` у leaseState
+    // не валить жодного тесту вище — усі вони порівнюють різні дати.
+    const today = utc(2026, 7, 10)
+    const p: Period = { startDate: utc(2026, 1, 1), endDate: today }
+    expect(leaseState(p, today)).toBe('ACTIVE')
+  })
+
+  it('договір, що завершився вчора, вже завершений', () => {
+    const today = utc(2026, 7, 10)
+    const p: Period = { startDate: utc(2026, 1, 1), endDate: utc(2026, 7, 9) }
+    expect(leaseState(p, today)).toBe('ENDED')
   })
 })
 
@@ -1431,6 +1650,15 @@ describe('isPremisesOccupied', () => {
 
   it('приміщення з договором, що почнеться в майбутньому, поки вільне', () => {
     expect(isPremisesOccupied([{ startDate: utc(2026, 9, 1), endDate: null }], today)).toBe(false)
+  })
+
+  it('приміщення здане вже в перший день договору', () => {
+    // startDate <= today включно. Мутація `<=` на `<` не валить тестів вище.
+    expect(isPremisesOccupied([{ startDate: today, endDate: null }], today)).toBe(true)
+  })
+
+  it('приміщення ще здане в останній день договору', () => {
+    expect(isPremisesOccupied([{ startDate: utc(2026, 1, 1), endDate: today }], today)).toBe(true)
   })
 })
 ```
@@ -1493,7 +1721,7 @@ export function isPremisesOccupied(leases: Period[], today: Date): boolean {
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/status.test.ts`
-Expected: PASS — 16 passed
+Expected: PASS — 21 passed
 
 - [ ] **Step 5: Коміт**
 
@@ -1561,10 +1789,19 @@ describe('periodsOverlap', () => {
     expect(periodsOverlap(p(utc(2026, 1, 1), null), p(utc(2027, 1, 1), null))).toBe(true)
   })
 
-  it('симетрична: порядок аргументів не впливає', () => {
+  it('симетрична саме на дотику в один день', () => {
+    // Рівність дат потрапляє на РІЗНІ доданки залежно від порядку аргументів:
+    //   periodsOverlap(a, b) ставить рівність на друге порівняння,
+    //   periodsOverlap(b, a) — на перше.
+    // Перевірка лише в один бік лишає половину умови без тесту, і мутація
+    // того `<=`, що не на границі, проходить непоміченою.
+    //
+    // Форма `expect(f(a,b)).toBe(f(b,a))` тут була б тавтологією:
+    // кон'юнкція комутативна, тож рівність тримається за будь-якого оператора.
     const a = p(utc(2026, 1, 1), utc(2026, 3, 31))
-    const b = p(utc(2026, 3, 1), utc(2026, 6, 30))
-    expect(periodsOverlap(a, b)).toBe(periodsOverlap(b, a))
+    const b = p(utc(2026, 3, 31), utc(2026, 6, 30))
+    expect(periodsOverlap(a, b)).toBe(true)
+    expect(periodsOverlap(b, a)).toBe(true)
   })
 })
 
@@ -1713,6 +1950,15 @@ describe('pickTariffForMonth', () => {
     expect(pickTariffForMonth([jan, midMarch], 2026, 2)).toEqual(jan)
   })
 
+  it('тариф, чинний із першого числа, діє вже цього місяця', () => {
+    // Реалістичний випадок: у seed тариф набуває чинності 1 червня.
+    // Реалізація через firstDayOfMonth зі строгим `<` цей тариф пропустила б.
+    const june: TariffRecord = {
+      effectiveFrom: utc(2026, 6, 1), electricityRateKop: 500, waterRateKop: 1400,
+    }
+    expect(pickTariffForMonth([jan, june], 2026, 6)).toEqual(june)
+  })
+
   it('для пізнішого місяця лишає новий тариф', () => {
     expect(pickTariffForMonth([jan, midMarch], 2026, 9)).toEqual(midMarch)
   })
@@ -1802,7 +2048,7 @@ export function pickTariffForMonth(
 - [ ] **Step 5: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/readings.test.ts tests/domain/tariff.test.ts`
-Expected: PASS — 12 passed
+Expected: PASS — 13 passed
 
 - [ ] **Step 6: Коміт**
 
@@ -1944,6 +2190,9 @@ export async function seed() {
 
 `prisma/seed.ts` — тонка CLI-обгортка:
 ```ts
+// Має стояти ПЕРШИМ: db.ts читає process.env.DATABASE_URL при завантаженні
+// модуля, а tsx (на відміну від Next.js) сам .env не підвантажує.
+import 'dotenv/config'
 import { prisma } from '../src/server/db'
 import { seed } from './seed-data'
 

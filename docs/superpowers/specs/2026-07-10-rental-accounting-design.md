@@ -20,7 +20,8 @@
 
 | Шар | Рішення | Версія на 2026-07-10 |
 |---|---|---|
-| Фреймворк | Next.js (App Router) + TypeScript | 16.2.x |
+| Фреймворк | Next.js (App Router) | 16.2.x |
+| Мова | TypeScript — **запінено на 6.x** | 6.0.x |
 | БД | SQLite + Prisma (див. §4.1) | 7.8.x |
 | Стилі | Tailwind CSS (CSS-first, `@theme`) | 4.3.x |
 | Дані на клієнті | TanStack Query | v5 |
@@ -30,6 +31,12 @@
 | Авторизація | власна сесія: `bcrypt` + JWT (`jose`) у httpOnly-cookie | — |
 
 Версії перевірені в реєстрі npm, а не взяті з памʼяті.
+
+**TypeScript не оновлювати до 7.** `typescript@latest` — це 7.0.2, нативний
+Go-порт із перебудованою `exports`-мапою. `next@16.2.10` резолвить компілятор
+хардкодом `typescript/lib/typescript.js` з `exportsRestrict: true`, а сімка
+такого експорту не має, тому `next build` падає з `require(undefined)`.
+Знято з джерел Next (`dist/build/type-check.js`), а не з повідомлення про помилку.
 
 ## 3. Ключові рішення та їх обґрунтування
 
@@ -133,6 +140,36 @@ legacy-пакетом. Актуальний генератор — `prisma-clien
 `output`. Точний шлях імпорту згенерованого клієнта підтверджується емпірично
 (`prisma generate` + перевірка каталогу), а не за памʼяттю.
 
+**Connection URL більше не живе у схемі.** Prisma 7 відхиляє
+`datasource { url = env(...) }` помилкою `P1012`. Рядок підключення переїхав у
+`prisma.config.ts` у корені проєкту, а `PrismaClient` тепер **вимагає driver
+adapter**. Для локального SQLite це `@prisma/adapter-better-sqlite3`:
+
+```ts
+// prisma.config.ts
+import 'dotenv/config'
+import { defineConfig, env } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: { path: 'prisma/migrations' },
+  datasource: { url: env('DATABASE_URL') },
+})
+```
+
+```ts
+// src/server/db.ts
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaClient } from '../generated/prisma/client'
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
+export const prisma = new PrismaClient({ adapter })
+```
+
+**Шлях до файлу БД.** Адаптер резолвить `file:./…` відносно робочого каталогу
+процесу, а не каталогу схеми. Тому `DATABASE_URL="file:./prisma/dev.db"` —
+з явним `prisma/`. Інакше база лягла б у корінь репозиторію повз `.gitignore`.
+
 **Seed** запускається окремим скриптом (`tsx prisma/seed.ts`), а не через
 `prisma db seed` — щоб не залежати від змін формату конфігурації Prisma.
 
@@ -143,10 +180,20 @@ generator client {
   provider = "prisma-client"          // Prisma 7: не "prisma-client-js"
   output   = "../src/generated/prisma"
 }
-datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
+datasource db { provider = "sqlite" }  // url — у prisma.config.ts, див. §4.1
 
-enum Role          { ADMIN USER }
-enum PaymentMethod { CASH CARD BANK }   // готівка / картка / рахунок
+// PSL вимагає кожне значення на окремому рядку.
+// Однорядковий `enum Role { ADMIN USER }` падає з P1012.
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PaymentMethod {   // готівка / картка / рахунок
+  CASH
+  CARD
+  BANK
+}
 
 model User {
   id           String   @id @default(cuid())
@@ -371,11 +418,17 @@ AND (endDate IS NULL OR endDate ≥ перший_день(M))
 для рахунків, впорядкованих за (year, month) зростанням, потім createdAt:
     покрито = min(пул, totalKop)
     пул    −= покрито
-    статус  = покрито == 0        → НЕ ОПЛАЧЕНО
-              покрито <  totalKop → ЧАСТКОВО
-              покрито == totalKop → ОПЛАЧЕНО
+    статус  = покрито == totalKop → ОПЛАЧЕНО     ← перевіряється ПЕРШИМ
+              покрито == 0        → НЕ ОПЛАЧЕНО
+              інакше              → ЧАСТКОВО
 залишок пулу = аванс (переплата)
 ```
+
+Порядок перевірок має значення. Для рахунку на нульову суму обидві умови
+`покрито == 0` і `покрито == totalKop` істинні одночасно. Рахунок на 0 грн
+нічого не вимагає, отже він **закритий** — тому `ОПЛАЧЕНО` перевіряється першим.
+Інакше пільговий місяць із нульовою орендою вічно висів би у списку боржників
+із боргом 0 грн.
 
 Борг = `Σ рахунків − Σ оплат`. Відʼємне значення означає аванс.
 
