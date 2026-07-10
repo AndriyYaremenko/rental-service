@@ -35,10 +35,19 @@ describe('periodsOverlap', () => {
     expect(periodsOverlap(p(utc(2026, 1, 1), null), p(utc(2027, 1, 1), null))).toBe(true)
   })
 
-  it('симетрична: порядок аргументів не впливає', () => {
+  it('симетрична саме на дотику в один день', () => {
+    // Рівність дат потрапляє на РІЗНІ доданки залежно від порядку аргументів:
+    //   periodsOverlap(a, b) ставить рівність на друге порівняння,
+    //   periodsOverlap(b, a) — на перше.
+    // Перевірка лише в один бік лишає половину умови без тесту, і мутація
+    // того `<=`, що не на границі, проходить непоміченою.
+    //
+    // Форма `expect(f(a,b)).toBe(f(b,a))` тут була б тавтологією:
+    // кон'юнкція комутативна, тож рівність тримається за будь-якого оператора.
     const a = p(utc(2026, 1, 1), utc(2026, 3, 31))
-    const b = p(utc(2026, 3, 1), utc(2026, 6, 30))
-    expect(periodsOverlap(a, b)).toBe(periodsOverlap(b, a))
+    const b = p(utc(2026, 3, 31), utc(2026, 6, 30))
+    expect(periodsOverlap(a, b)).toBe(true)
+    expect(periodsOverlap(b, a)).toBe(true)
   })
 })
 
