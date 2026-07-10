@@ -854,7 +854,7 @@ export function roundHalfUp(value: Decimal): Kop {
 - [ ] **Step 5: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/money.test.ts`
-Expected: PASS — 10 passed
+Expected: PASS — 11 passed
 
 - [ ] **Step 6: Коміт**
 
