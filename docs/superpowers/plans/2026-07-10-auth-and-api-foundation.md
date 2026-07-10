@@ -1799,3 +1799,16 @@ git commit -m "chore(api): наскрізна перевірка — tsc, тес
 нарахувань (`buildInvoice`, `pickTariffForMonth`, `isLeaseActiveInMonth`, причини
 пропуску), оплати, статуси рахунків (`allocatePayments`), борги і звіти (CSV).
 Він споживає guard і envelope, зроблені тут.
+
+---
+
+## Пост-рев'ю фікси (фінальний огляд гілки)
+
+Два Important, виправлені після реалізації (див. коміт `fix(api): updatePremises
+P2002->CONFLICT і self-lockout guard`):
+1. **`updatePremises`** тепер ловить `P2002` і мапить у `CONFLICT` (як `createPremises`):
+   PATCH `unitNumber`/`locationId` може зіткнутися з `@@unique([locationId, unitNumber])`.
+2. **`updateUser(id, data, currentUserId)`** отримав self-lockout guard (симетрично
+   `deleteUser`): адмін не може деактивувати чи понизити САМ СЕБЕ. Роут передає `admin.id`.
+
+Відкладено до Плану 2b: CSRF-токен (там зʼявляться грошові мутації — оплати/нарахування).
