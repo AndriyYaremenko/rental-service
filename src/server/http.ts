@@ -77,10 +77,12 @@ export async function parseBody<T>(req: Request, schema: ZodType<T>): Promise<T>
   return result.data
 }
 
-type Handler = (req: import('next/server').NextRequest, ctx: unknown) => Promise<Response>
+type Handler<Ctx = unknown> = (req: import('next/server').NextRequest, ctx: Ctx) => Promise<Response>
 
-/** Обгортка route-handler'а: перетворює будь-яку кинуту помилку в envelope. */
-export function route(fn: Handler): Handler {
+/** Обгортка route-handler'а: перетворює будь-яку кинуту помилку в envelope.
+ *  Ctx — узагальнений, щоб роути з динамічними сегментами (`[id]`) могли
+ *  типізувати `{ params: Promise<{ id: string }> }` замість `unknown`. */
+export function route<Ctx = unknown>(fn: Handler<Ctx>): Handler<Ctx> {
   return async (req, ctx) => {
     try {
       return await fn(req, ctx)
