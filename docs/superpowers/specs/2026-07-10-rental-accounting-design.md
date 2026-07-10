@@ -18,15 +18,18 @@
 
 ## 2. Стек
 
-| Шар | Рішення |
-|---|---|
-| Фреймворк | Next.js (App Router) + TypeScript |
-| БД | SQLite + Prisma (**≥ 6.2.0**, див. §4.1) |
-| Стилі | Tailwind CSS |
-| Дані на клієнті | TanStack Query v5 |
-| Валідація | Zod (спільні схеми для API і форм) |
-| Тести | Vitest |
-| Авторизація | власна сесія: `bcrypt` + JWT (`jose`) у httpOnly-cookie |
+| Шар | Рішення | Версія на 2026-07-10 |
+|---|---|---|
+| Фреймворк | Next.js (App Router) + TypeScript | 16.2.x |
+| БД | SQLite + Prisma (див. §4.1) | 7.8.x |
+| Стилі | Tailwind CSS (CSS-first, `@theme`) | 4.3.x |
+| Дані на клієнті | TanStack Query | v5 |
+| Валідація | Zod (спільні схеми для API і форм) | 4.4.x |
+| Тести | Vitest | 4.1.x |
+| Точна арифметика | `decimal.js` | — |
+| Авторизація | власна сесія: `bcrypt` + JWT (`jose`) у httpOnly-cookie | — |
+
+Версії перевірені в реєстрі npm, а не взяті з памʼяті.
 
 ## 3. Ключові рішення та їх обґрунтування
 
@@ -119,17 +122,28 @@ SQLite не має справжнього `DECIMAL`: колонка отриму
 
 ## 4. Модель даних
 
-### 4.1 Застереження щодо enum на SQLite
+### 4.1 Два застереження щодо Prisma
 
-Enum підтримується SQLite-конектором починаючи з **Prisma 6.2.0**, але
-валідується **на рівні ORM, а не бази**. База не відхилить стороннє значення —
-впаде Prisma Client при читанні. Версію Prisma фіксуємо в `package.json`.
+**Enum на SQLite.** Підтримується починаючи з Prisma 6.2.0, але валідується
+**на рівні ORM, а не бази**. База не відхилить стороннє значення — впаде Prisma
+Client при читанні. Ми на 7.8, тож enum працює.
+
+**Генератор клієнта.** У Prisma 7 провайдер `prisma-client-js` став внутрішнім
+legacy-пакетом. Актуальний генератор — `prisma-client` з **обовʼязковим**
+`output`. Точний шлях імпорту згенерованого клієнта підтверджується емпірично
+(`prisma generate` + перевірка каталогу), а не за памʼяттю.
+
+**Seed** запускається окремим скриптом (`tsx prisma/seed.ts`), а не через
+`prisma db seed` — щоб не залежати від змін формату конфігурації Prisma.
 
 ### 4.2 Схема
 
 ```prisma
-generator client { provider = "prisma-client-js" }
-datasource db    { provider = "sqlite"; url = env("DATABASE_URL") }
+generator client {
+  provider = "prisma-client"          // Prisma 7: не "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
 
 enum Role          { ADMIN USER }
 enum PaymentMethod { CASH CARD BANK }   // готівка / картка / рахунок
@@ -438,10 +452,24 @@ newStart ≤ (existEnd ?? +∞)  AND  existStart ≤ (newEnd ?? +∞)
 
 ### 7.2 Порт токенів
 
-Inline `tailwind.config` з CDN-версії макета переноситься у справжній
-`tailwind.config.ts` без зміни значень: `primary #041627`,
-`primary-container #1a2b3c`, `secondary #006a6a` (teal), `surface #f8f9ff`,
-`on-surface #0b1c30`, `error #ba1a1a`. `darkMode: "class"` зберігається.
+Макет зроблений на Tailwind 3 (CDN) з inline `tailwind.config`. Ми на
+**Tailwind 4**, де конфігурація живе в CSS (`@theme`), а не в `tailwind.config.ts`.
+Значення переносяться **без змін**, змінюється лише форма запису:
+
+```css
+@theme {
+  --color-primary:           #041627;
+  --color-primary-container: #1a2b3c;
+  --color-secondary:         #006a6a;  /* teal */
+  --color-surface:           #f8f9ff;
+  --color-on-surface:        #0b1c30;
+  --color-error:             #ba1a1a;
+  /* …решта токенів макета один-в-один */
+}
+```
+
+Темна тема (`darkMode: "class"` у v3) у v4 задається кастомним варіантом:
+`@custom-variant dark (&:where(.dark, .dark *));`
 
 Шрифти (Inter, Material Symbols Outlined) підключаються **self-hosted** через
 `next/font`, без звернень до зовнішніх CDN.
