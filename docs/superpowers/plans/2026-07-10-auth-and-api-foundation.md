@@ -54,7 +54,7 @@ JWT (`jose`, HS256) у httpOnly-cookie, пароль — `bcryptjs`.
 | `src/server/auth/core.ts` | `authenticate`, `userFromToken` — чиста логіка без cookie |
 | `src/server/auth/guard.ts` | `requireUser`, `requireAdmin` — читають cookie, тонкі |
 | `src/server/services/*.ts` | `locations`, `premises`, `tenants`, `tariffs`, `users` — CRUD + DTO |
-| `lib/validation/*.ts` | Zod-схеми: `common`, `auth`, `location`, `premises`, `tenant`, `tariff`, `user` |
+| `src/lib/validation/*.ts` | Zod-схеми: `common`, `auth`, `location`, `premises`, `tenant`, `tariff`, `user` |
 | `src/app/api/**/route.ts` | тонкі handler'и |
 | `tests/server/*`, `tests/services/*` | тести |
 
@@ -415,7 +415,7 @@ JWT HS256 у httpOnly-cookie, строк 7 днів. verifySession поверт�
 ### Task 3: Автентифікація, guard і auth-роути
 
 **Files:**
-- Create: `src/server/auth/core.ts`, `src/server/auth/guard.ts`, `lib/validation/auth.ts`
+- Create: `src/server/auth/core.ts`, `src/server/auth/guard.ts`, `src/lib/validation/auth.ts`
 - Create: `src/app/api/auth/login/route.ts`, `.../logout/route.ts`, `.../me/route.ts`
 - Test: `tests/server/auth/core.test.ts`
 
@@ -572,7 +572,7 @@ export async function requireAdmin(): Promise<SessionUser> {
 }
 ```
 
-`lib/validation/auth.ts`:
+`src/lib/validation/auth.ts`:
 ```ts
 import { z } from 'zod'
 
@@ -632,7 +632,7 @@ Expected: збірка успішна; у списку маршрутів `/api/
 - [ ] **Step 7: Коміт**
 
 ```bash
-git add src/server/auth/core.ts src/server/auth/guard.ts lib/validation/auth.ts \
+git add src/server/auth/core.ts src/server/auth/guard.ts src/lib/validation/auth.ts \
   src/app/api/auth tests/server/auth/core.test.ts
 git commit -m "feat(auth): authenticate, guard і роути login/logout/me
 
@@ -646,7 +646,7 @@ authenticate дає однакову помилку для неіснуючог�
 ### Task 4: Валідація-інфраструктура + локації (CRUD)
 
 **Files:**
-- Create: `lib/validation/common.ts`, `lib/validation/location.ts`, `src/server/services/locations.ts`
+- Create: `src/lib/validation/common.ts`, `src/lib/validation/location.ts`, `src/server/services/locations.ts`
 - Create: `src/app/api/locations/route.ts`, `src/app/api/locations/[id]/route.ts`
 - Test: `tests/services/locations.test.ts`
 
@@ -717,7 +717,7 @@ Expected: FAIL — `Cannot find module '@/server/services/locations'`
 
 - [ ] **Step 3: Реалізувати**
 
-`lib/validation/common.ts`:
+`src/lib/validation/common.ts`:
 ```ts
 import { z } from 'zod'
 
@@ -732,7 +732,7 @@ export const optionalText = z
   .optional()
 ```
 
-`lib/validation/location.ts`:
+`src/lib/validation/location.ts`:
 ```ts
 import { z } from 'zod'
 import { optionalText, trimmed } from './common'
@@ -857,7 +857,7 @@ Expected: PASS — 6 passed
 - [ ] **Step 5: Коміт**
 
 ```bash
-git add lib/validation/common.ts lib/validation/location.ts \
+git add src/lib/validation/common.ts src/lib/validation/location.ts \
   src/server/services/locations.ts src/app/api/locations tests/services/locations.test.ts
 git commit -m "feat(api): CRUD локацій + валідація-інфраструктура
 
@@ -870,7 +870,7 @@ Service повертає DTO (нема витоку полів БД). Видал
 ### Task 5: Приміщення (CRUD) з похідним статусом «здано/вільне»
 
 **Files:**
-- Create: `lib/validation/premises.ts`, `src/server/services/premises.ts`
+- Create: `src/lib/validation/premises.ts`, `src/server/services/premises.ts`
 - Create: `src/app/api/premises/route.ts`, `src/app/api/premises/[id]/route.ts`
 - Test: `tests/services/premises.test.ts`
 
@@ -951,7 +951,7 @@ Expected: FAIL — `Cannot find module '@/server/services/premises'`
 
 - [ ] **Step 3: Реалізувати**
 
-`lib/validation/premises.ts`:
+`src/lib/validation/premises.ts`:
 ```ts
 import { z } from 'zod'
 import { optionalText, trimmed } from './common'
@@ -1121,7 +1121,7 @@ Expected: PASS — 5 passed
 - [ ] **Step 5: Коміт**
 
 ```bash
-git add lib/validation/premises.ts src/server/services/premises.ts \
+git add src/lib/validation/premises.ts src/server/services/premises.ts \
   src/app/api/premises tests/services/premises.test.ts
 git commit -m "feat(api): CRUD приміщень із похідним статусом occupied
 
@@ -1135,7 +1135,7 @@ occupied обчислюється доменним isPremisesOccupied із до�
 ### Task 6: Орендарі (CRUD)
 
 **Files:**
-- Create: `lib/validation/tenant.ts`, `src/server/services/tenants.ts`
+- Create: `src/lib/validation/tenant.ts`, `src/server/services/tenants.ts`
 - Create: `src/app/api/tenants/route.ts`, `src/app/api/tenants/[id]/route.ts`
 - Test: `tests/services/tenants.test.ts`
 
@@ -1205,7 +1205,7 @@ Expected: FAIL — `Cannot find module '@/server/services/tenants'`
 
 - [ ] **Step 3: Реалізувати**
 
-`lib/validation/tenant.ts`:
+`src/lib/validation/tenant.ts`:
 ```ts
 import { z } from 'zod'
 import { optionalText, trimmed } from './common'
@@ -1326,7 +1326,7 @@ Expected: PASS — 5 passed
 - [ ] **Step 5: Коміт**
 
 ```bash
-git add lib/validation/tenant.ts src/server/services/tenants.ts \
+git add src/lib/validation/tenant.ts src/server/services/tenants.ts \
   src/app/api/tenants tests/services/tenants.test.ts
 git commit -m "feat(api): CRUD орендарів"
 ```
@@ -1336,7 +1336,7 @@ git commit -m "feat(api): CRUD орендарів"
 ### Task 7: Тарифи (CRUD)
 
 **Files:**
-- Create: `lib/validation/tariff.ts`, `src/server/services/tariffs.ts`
+- Create: `src/lib/validation/tariff.ts`, `src/server/services/tariffs.ts`
 - Create: `src/app/api/tariffs/route.ts`, `src/app/api/tariffs/[id]/route.ts`
 - Test: `tests/services/tariffs.test.ts`
 
@@ -1403,7 +1403,7 @@ Expected: FAIL — `Cannot find module '@/server/services/tariffs'`
 
 - [ ] **Step 3: Реалізувати**
 
-`lib/validation/tariff.ts`:
+`src/lib/validation/tariff.ts`:
 ```ts
 import { z } from 'zod'
 
@@ -1518,7 +1518,7 @@ Expected: PASS — 5 passed
 - [ ] **Step 5: Коміт**
 
 ```bash
-git add lib/validation/tariff.ts src/server/services/tariffs.ts \
+git add src/lib/validation/tariff.ts src/server/services/tariffs.ts \
   src/app/api/tariffs tests/services/tariffs.test.ts
 git commit -m "feat(api): тарифи (додати/видалити, без редагування)
 
@@ -1532,7 +1532,7 @@ git commit -m "feat(api): тарифи (додати/видалити, без р
 ### Task 8: Користувачі (CRUD, лише ADMIN)
 
 **Files:**
-- Create: `lib/validation/user.ts`, `src/server/services/users.ts`
+- Create: `src/lib/validation/user.ts`, `src/server/services/users.ts`
 - Create: `src/app/api/users/route.ts`, `src/app/api/users/[id]/route.ts`
 - Test: `tests/services/users.test.ts`
 
@@ -1602,7 +1602,7 @@ Expected: FAIL — `Cannot find module '@/server/services/users'`
 
 - [ ] **Step 3: Реалізувати**
 
-`lib/validation/user.ts`:
+`src/lib/validation/user.ts`:
 ```ts
 import { z } from 'zod'
 import { trimmed } from './common'
@@ -1730,7 +1730,7 @@ Expected: PASS — 6 passed
 - [ ] **Step 5: Коміт**
 
 ```bash
-git add lib/validation/user.ts src/server/services/users.ts \
+git add src/lib/validation/user.ts src/server/services/users.ts \
   src/app/api/users tests/services/users.test.ts
 git commit -m "feat(api): CRUD користувачів (лише ADMIN)
 
