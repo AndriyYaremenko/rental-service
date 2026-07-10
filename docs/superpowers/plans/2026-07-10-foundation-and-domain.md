@@ -31,8 +31,11 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
   `Invoice.status`, `Premises.status`, `Lease.status`.
 - **Активність договору в місяці визначається тільки датами**, ніколи статусом.
 - **Мова:** ідентифікатори англійською, повідомлення помилок і коміти українською.
-- **TDD-цикл обовʼязковий:** написати падаючий тест → переконатися, що падає →
-  мінімальна реалізація → переконатися, що проходить → коміт.
+- **TDD-цикл обовʼязковий для поведінки** (`src/domain/**`, seed): написати
+  падаючий тест → переконатися, що падає → мінімальна реалізація →
+  переконатися, що проходить → коміт. Задачі каркаса (Task 1) поведінки не
+  містять і перевіряються типізацією та запуском набору тестів — не вигадуй
+  фіктивний модуль лише заради того, щоб було що імпортувати в тесті.
 - **`bcryptjs`**, а не `bcrypt`: чистий JS, не потребує нативної збірки на Windows.
 - Enum на SQLite валідується лише на рівні ORM — база не захистить.
 
@@ -69,12 +72,16 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 - Create: `package.json`, `tsconfig.json`, `next.config.ts`, `vitest.config.ts`
 - Create: `.gitignore`, `.gitattributes`, `.env`, `.env.example`
 - Create: `postcss.config.mjs`, `src/app/globals.css`, `src/app/layout.tsx`, `src/app/page.tsx`
-- Test: `tests/smoke.test.ts`
+- Create: `tests/setup.ts`
 
 **Interfaces:**
 - Consumes: нічого (перша задача)
 - Produces: npm-скрипти `test`, `dev`, `db:migrate`, `db:generate`, `db:seed`;
   alias `@/*` → `src/*` і в TS, і у Vitest
+
+Тестового файлу тут немає навмисно: у каркасі немає поведінки, яку варто
+перевіряти. Резолвінг alias `@/` по-справжньому доводить Task 2, де тест
+імпортує `@/server/db`. Модуль-заглушка заради smoke-тесту був би зайвим кодом.
 
 - [ ] **Step 1: Ініціалізувати package.json і встановити залежності**
 
@@ -237,45 +244,32 @@ export default function Home() {
 }
 ```
 
-- [ ] **Step 5: Написати падаючий smoke-тест**
+- [ ] **Step 5: Перевірити типізацію**
 
-`tests/smoke.test.ts`:
-```ts
-import { describe, expect, it } from 'vitest'
+Run: `npx tsc --noEmit`
+Expected: без помилок (жодного виводу, код виходу 0)
 
-describe('тестове оточення', () => {
-  it('вміє резолвити alias @/', async () => {
-    const { APP_NAME } = await import('@/domain/constants')
-    expect(APP_NAME).toBe('rental-service')
-  })
-})
-```
+- [ ] **Step 6: Перевірити, що Vitest стартує з порожнім набором**
 
-- [ ] **Step 6: Запустити тест і переконатися, що падає**
+Run: `npm test -- --passWithNoTests`
+Expected: `No test files found` і код виходу 0.
+Це доводить, що `vitest.config.ts` і `tests/setup.ts` коректні —
+`dotenv` завантажується без помилок.
 
-Run: `npm test`
-Expected: FAIL — `Cannot find module '@/domain/constants'`
+- [ ] **Step 7: Перевірити, що Next.js збирається**
 
-- [ ] **Step 7: Мінімальна реалізація**
+Run: `npm run build`
+Expected: збірка успішна, сторінка `/` у списку маршрутів
 
-`src/domain/constants.ts`:
-```ts
-export const APP_NAME = 'rental-service'
-```
-
-- [ ] **Step 8: Запустити тест і переконатися, що проходить**
-
-Run: `npm test`
-Expected: PASS — 1 passed
-
-- [ ] **Step 9: Коміт**
+- [ ] **Step 8: Коміт**
 
 ```bash
 git add -A
 git commit -m "chore: каркас Next.js, TypeScript і Vitest
 
 Скафолд зроблено вручну: create-next-app відмовляється працювати
-в непорожній директорії. .gitattributes фіксує LF."
+в непорожній директорії. .gitattributes фіксує LF.
+Тестів немає навмисно — у каркасі немає поведінки."
 ```
 
 ---
@@ -480,22 +474,40 @@ import { describe, expect, it } from 'vitest'
 import { prisma } from '@/server/db'
 
 describe('підключення до БД', () => {
-  it('виконує запит до таблиці користувачів', async () => {
-    // Навмисно не перевіряємо конкретну кількість: seed з Task 11
-    // наповнює ту саму базу, і жорстка нуль-перевірка зробила б
-    // цей тест залежним від порядку запуску.
-    const count = await prisma.user.count()
-    expect(count).toBeGreaterThanOrEqual(0)
+  it('робить повний цикл запис-читання-видалення', async () => {
+    // Перевіряє одразу три речі, і кожна з них може зламатися:
+    // міграція створила таблиці, клієнт згенерований, зʼєднання живе.
+    const created = await prisma.location.create({
+      data: { name: 'Тестова локація', address: 'вул. Тестова, 1' },
+    })
+
+    const found = await prisma.location.findUniqueOrThrow({ where: { id: created.id } })
+    expect(found.name).toBe('Тестова локація')
+    expect(found.address).toBe('вул. Тестова, 1')
+
+    await prisma.location.delete({ where: { id: created.id } })
+    expect(await prisma.location.findUnique({ where: { id: created.id } })).toBeNull()
   })
 
-  it('бачить усі очікувані моделі', () => {
-    for (const model of ['user', 'location', 'premises', 'tenant', 'lease',
-                         'tariff', 'meterReading', 'invoice', 'payment'] as const) {
-      expect(prisma[model]).toBeDefined()
-    }
+  it('зберігає площу приміщення як Decimal без втрати знаків', async () => {
+    const location = await prisma.location.create({
+      data: { name: 'Локація для площі', address: 'вул. Тестова, 2' },
+    })
+    const premises = await prisma.premises.create({
+      data: { locationId: location.id, unitNumber: '1', type: 'офіс', areaM2: '54.30' },
+    })
+
+    const found = await prisma.premises.findUniqueOrThrow({ where: { id: premises.id } })
+    expect(found.areaM2.toString()).toBe('54.3')
+
+    await prisma.premises.delete({ where: { id: premises.id } })
+    await prisma.location.delete({ where: { id: location.id } })
   })
 })
 ```
+
+Тести прибирають за собою, тому не залежать від seed із Task 11
+і не заважають йому.
 
 - [ ] **Step 5: Запустити тест і переконатися, що падає**
 
