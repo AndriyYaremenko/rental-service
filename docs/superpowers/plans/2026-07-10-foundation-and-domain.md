@@ -21,6 +21,11 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 
 - **Prisma 7:** генератор `provider = "prisma-client"` з обовʼязковим `output`.
   `prisma-client-js` — legacy, не використовувати.
+- **TypeScript запінено на `^6.0.3`. Не оновлювати до 7.** `typescript@latest`
+  зараз 7.0.2 — нативний Go-порт із перебудованим пакетом. `next@16.2.10`
+  резолвить TS хардкодом `typescript/lib/typescript.js` з `exportsRestrict: true`
+  (`next/dist/build/type-check.js`), а `exports`-мапа TS 7 такого шляху не має →
+  `require(undefined)` і падіння `next build`. Перевірено на джерелах Next.
 - **Гроші — тільки цілі копійки (`Int`).** `Decimal` дозволений виключно для
   фізичних величин: показники лічильників, площа. Жодних `float` для сум.
 - **Округлення — рівно один раз**, при формуванні рядка рахунку, режим
@@ -89,9 +94,11 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 npm init -y
 npm pkg set name="rental-service" private=true
 npm install next@16 react@19 react-dom@19 @prisma/client@7 decimal.js zod@4 bcryptjs
-npm install -D typescript @types/node @types/react @types/react-dom \
+npm install -D typescript@6 @types/node @types/react @types/react-dom \
   prisma@7 tsx vitest@4 tailwindcss@4 @tailwindcss/postcss@4 dotenv
 ```
+
+`typescript@6` запінено свідомо — сімка ламає `next build` (див. Global Constraints).
 
 `dotenv` потрібен саме для тестів: `.env` читають Prisma CLI і Next.js, але
 **не Vitest**. Без нього Prisma Client не побачить `DATABASE_URL`.

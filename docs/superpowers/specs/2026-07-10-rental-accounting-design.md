@@ -20,7 +20,8 @@
 
 | Шар | Рішення | Версія на 2026-07-10 |
 |---|---|---|
-| Фреймворк | Next.js (App Router) + TypeScript | 16.2.x |
+| Фреймворк | Next.js (App Router) | 16.2.x |
+| Мова | TypeScript — **запінено на 6.x** | 6.0.x |
 | БД | SQLite + Prisma (див. §4.1) | 7.8.x |
 | Стилі | Tailwind CSS (CSS-first, `@theme`) | 4.3.x |
 | Дані на клієнті | TanStack Query | v5 |
@@ -30,6 +31,12 @@
 | Авторизація | власна сесія: `bcrypt` + JWT (`jose`) у httpOnly-cookie | — |
 
 Версії перевірені в реєстрі npm, а не взяті з памʼяті.
+
+**TypeScript не оновлювати до 7.** `typescript@latest` — це 7.0.2, нативний
+Go-порт із перебудованою `exports`-мапою. `next@16.2.10` резолвить компілятор
+хардкодом `typescript/lib/typescript.js` з `exportsRestrict: true`, а сімка
+такого експорту не має, тому `next build` падає з `require(undefined)`.
+Знято з джерел Next (`dist/build/type-check.js`), а не з повідомлення про помилку.
 
 ## 3. Ключові рішення та їх обґрунтування
 
