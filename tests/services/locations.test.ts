@@ -43,4 +43,25 @@ describe('locations service', () => {
     await prisma.premises.create({ data: { locationId: loc.id, unitNumber: '1', type: 'офіс', areaM2: '10' } })
     await expect(deleteLocation(loc.id)).rejects.toMatchObject({ code: 'CONFLICT' })
   })
+
+  it('update неіснуючого id → NOT_FOUND (не 500)', async () => {
+    await expect(updateLocation('немає', { name: 'X' })).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('delete неіснуючого id → NOT_FOUND (не 500)', async () => {
+    await expect(deleteLocation('немає')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('явний null у notes очищає поле, а не лишає старе', async () => {
+    // Zod-шар мапить '' → null (див. tests валідації); сервіс має
+    // персистити цей null, а не тлумачити його як «не чіпати».
+    const loc = track(await createLocation({ name: 'З нотаткою', address: 'вул. Шоста, 6', notes: 'важливо' }))
+    expect(loc.notes).toBe('важливо')
+    expect((await updateLocation(loc.id, { notes: null })).notes).toBeNull()
+  })
+
+  it('DTO не містить зайвих полів БД (createdAt/updatedAt не течуть)', async () => {
+    const loc = track(await createLocation({ name: 'Форма', address: 'вул. Сьома, 7' }))
+    expect(Object.keys(loc).sort()).toEqual(['address', 'id', 'name', 'notes'])
+  })
 })
