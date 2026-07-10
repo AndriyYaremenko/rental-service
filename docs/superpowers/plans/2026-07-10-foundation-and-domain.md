@@ -1035,6 +1035,7 @@ git commit -m "feat(domain): споживання з підтримкою зам
 ```ts
 import { Decimal } from 'decimal.js'
 import { describe, expect, it } from 'vitest'
+import { NoPreviousReadingError } from '@/domain/errors'
 import { buildInvoice, type BuildInvoiceInput } from '@/domain/invoice'
 
 const input = (o: Partial<BuildInvoiceInput> = {}): BuildInvoiceInput => ({
@@ -1071,7 +1072,7 @@ describe('buildInvoice', () => {
     expect(lines.totalKop).toBe(1_055_975)
   })
 
-  it('округлює кожен рядок half-up', () => {
+  it('округлює кожен рядок до копійки', () => {
     const lines = buildInvoice(input({
       water: {
         curr: new Decimal('3.333'), prev: new Decimal(0),
@@ -1080,6 +1081,30 @@ describe('buildInvoice', () => {
     }))
     // 3.333 * 1250 = 4166.25 -> 4166
     expect(lines.waterKop).toBe(4166)
+  })
+
+  it('на точній половині копійки округлює вгору, а не до парного', () => {
+    const lines = buildInvoice(input({
+      water: {
+        curr: new Decimal('3.3332'), prev: new Decimal(0),
+        replaced: false, replacedInitial: null,
+      },
+    }))
+    // 3.3332 * 1250 = 4166.5 рівно — справжня «нічия».
+    // half-up дає 4167; банківське округлення дало б 4166 (парне).
+    // Попередній тест (.25) цього не розрізняє: там усі режими дають 4166.
+    expect(lines.waterKop).toBe(4167)
+  })
+
+  it('пропускає помилку consumption назовні, не обгортаючи її', () => {
+    expect(() =>
+      buildInvoice(input({
+        electricity: {
+          curr: new Decimal(150), prev: null,
+          replaced: false, replacedInitial: null,
+        },
+      })),
+    ).toThrow(NoPreviousReadingError)
   })
 
   it('усі грошові поля лишаються цілими', () => {
@@ -1156,7 +1181,7 @@ export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/invoice.test.ts`
-Expected: PASS — 5 passed
+Expected: PASS — 7 passed
 
 - [ ] **Step 5: Коміт**
 
