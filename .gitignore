@@ -9,6 +9,8 @@ next-env.d.ts
 src/generated/
 prisma/*.db
 prisma/*.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
 
 # Секрети
 .env
