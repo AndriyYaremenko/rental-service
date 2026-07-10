@@ -729,7 +729,12 @@ import { describe, expect, it } from 'vitest'
 import { InvalidAmountError } from '@/domain/errors'
 import { formatUah, fromKop, roundHalfUp, toKop } from '@/domain/money'
 
-const nbsp = / /g
+/**
+ * Intl для uk-UA розділяє тисячі нерозривним пробілом (U+00A0).
+ * Нормалізуємо будь-який пробільний символ, щоб тест не залежав від
+ * версії ICU: різні збірки дають то U+00A0, то U+202F.
+ */
+const normalizeSpaces = (s: string) => s.replace(/\s/g, ' ')
 
 describe('toKop', () => {
   it('переводить рядок у копійки', () => {
@@ -778,7 +783,11 @@ describe('roundHalfUp', () => {
 
 describe('formatUah', () => {
   it('форматує українською з групуванням', () => {
-    expect(formatUah(123456).replace(nbsp, ' ')).toBe('1 234,56 грн')
+    expect(normalizeSpaces(formatUah(123456))).toBe('1 234,56 грн')
+  })
+
+  it('показує копійки навіть для круглої суми', () => {
+    expect(normalizeSpaces(formatUah(100000))).toBe('1 000,00 грн')
   })
 })
 ```
