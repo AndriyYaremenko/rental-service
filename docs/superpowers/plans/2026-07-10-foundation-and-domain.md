@@ -664,8 +664,17 @@ export interface TariffRates {
   waterRateKop: Kop
 }
 
+// Поля дзеркалять рядок Invoice у схемі: API розпаковує це прямо в Prisma.
+// (Розширено після фінального огляду гілки — щоб персистенція була копією
+//  доменного результату, а не реконструкцією бази.)
 export interface InvoiceLines {
+  electricityRateKop: Kop
+  waterRateKop: Kop
+  prevElectricity: Decimal
+  currElectricity: Decimal
   electricityUsed: Decimal
+  prevWater: Decimal
+  currWater: Decimal
   waterUsed: Decimal
   rentKop: Kop
   electricityKop: Kop
@@ -1159,6 +1168,8 @@ export interface BuildInvoiceInput {
  * які бачить орендар у роздруківці.
  */
 export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
+  const prevElectricity = consumptionBase(input.electricity)
+  const prevWater = consumptionBase(input.water)
   const electricityUsed = consumption(input.electricity)
   const waterUsed = consumption(input.water)
 
@@ -1167,7 +1178,13 @@ export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
   const { rentKop, garbageKop } = input.terms
 
   return {
+    electricityRateKop: input.rates.electricityRateKop,
+    waterRateKop: input.rates.waterRateKop,
+    prevElectricity,
+    currElectricity: input.electricity.curr,
     electricityUsed,
+    prevWater,
+    currWater: input.water.curr,
     waterUsed,
     rentKop,
     electricityKop,
