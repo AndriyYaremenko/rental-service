@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { createUser, deleteUser, listUsers, updateUser } from '@/server/services/users'
+import { verifyPassword } from '@/server/auth/password'
 import { prisma } from '@/server/db'
 
 const created: string[] = []
@@ -28,11 +29,28 @@ describe('users service', () => {
     expect((await updateUser(u.id, { isActive: false })).isActive).toBe(false)
   })
 
-  it('оновлення пароля не ламає вхід (хеш змінюється)', async () => {
-    const u = track(await createUser({ email: 'pw@example.com', name: 'Пароль', role: 'USER', password: 'staryi12345' }))
-    await updateUser(u.id, { password: 'novyi123456' })
+  it('createUser хешує пароль, а не зберігає відкритим текстом', async () => {
+    // Читаємо рядок ОДРАЗУ після створення (до будь-якого update, який
+    // інакше замаскував би зламаний create, перехешувавши поверх).
+    const u = track(await createUser({ email: 'hash-create@example.com', name: 'Хеш', role: 'USER', password: 'parol12345' }))
     const row = await prisma.user.findUniqueOrThrow({ where: { id: u.id } })
-    expect(row.passwordHash).not.toBe('novyi123456')
+    expect(row.passwordHash).not.toBe('parol12345')
+    expect(await verifyPassword('parol12345', row.passwordHash)).toBe(true)
+  })
+
+  it('оновлення пароля справді змінює хеш і працює для входу', async () => {
+    const u = track(await createUser({ email: 'pw@example.com', name: 'Пароль', role: 'USER', password: 'staryi12345' }))
+    const before = (await prisma.user.findUniqueOrThrow({ where: { id: u.id } })).passwordHash
+
+    await updateUser(u.id, { password: 'novyi123456' })
+    const after = (await prisma.user.findUniqueOrThrow({ where: { id: u.id } })).passwordHash
+
+    // Не літерал, і саме ЗМІНИВСЯ (мовчазний no-op лишив би старий хеш),
+    // і новий пароль реально проходить перевірку.
+    expect(after).not.toBe('novyi123456')
+    expect(after).not.toBe(before)
+    expect(await verifyPassword('novyi123456', after)).toBe(true)
+    expect(await verifyPassword('staryi12345', after)).toBe(false)
   })
 
   it('адмін не може видалити сам себе → CONFLICT', async () => {
