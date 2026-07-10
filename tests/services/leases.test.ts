@@ -88,4 +88,17 @@ describe('leases service', () => {
     const item = (await listLeases()).find((x) => x.id === l.id)
     expect(Object.keys(item!).sort()).toEqual(keys)
   })
+
+  it('getLease повертає договір; неіснуючий → NOT_FOUND', async () => {
+    await fixtures()
+    const l = track(await createLease({ premisesId, tenantId, startDate: '2026-01-01', endDate: null, rentUah: '1', garbageUah: '0' }))
+    expect((await getLease(l.id)).id).toBe(l.id)
+    await expect(getLease('немає')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('некоректна сума оренди → VALIDATION_FAILED (не 500)', async () => {
+    await fixtures()
+    await expect(createLease({ premisesId, tenantId, startDate: '2026-01-01', endDate: null, rentUah: '18000.999', garbageUah: '0' }))
+      .rejects.toMatchObject({ code: 'VALIDATION_FAILED' })
+  })
 })
