@@ -22,6 +22,12 @@ describe('межи місяця', () => {
   it('останній день лютого високосного року', () => {
     expect(lastDayOfMonth(2028, 2).toISOString()).toBe('2028-02-29T23:59:59.999Z')
   })
+
+  it('останній день грудня лишається в тому самому році', () => {
+    // Date.UTC(2026, 12, 0) переповнює місяць у січень 2027,
+    // а день 0 відкочує назад на 31 грудня 2026.
+    expect(lastDayOfMonth(2026, 12).toISOString()).toBe('2026-12-31T23:59:59.999Z')
+  })
 })
 
 describe('leaseState', () => {
@@ -38,6 +44,20 @@ describe('leaseState', () => {
   it('договір із минулою датою завершення завершений', () => {
     const p: Period = { startDate: utc(2026, 1, 1), endDate: utc(2026, 3, 31) }
     expect(leaseState(p, utc(2026, 7, 10))).toBe('ENDED')
+  })
+
+  it('договір, що завершується сьогодні, ще активний', () => {
+    // endDate включно. Без цього тесту мутація `>=` на `>` у leaseState
+    // не валить жодного тесту вище — усі вони порівнюють різні дати.
+    const today = utc(2026, 7, 10)
+    const p: Period = { startDate: utc(2026, 1, 1), endDate: today }
+    expect(leaseState(p, today)).toBe('ACTIVE')
+  })
+
+  it('договір, що завершився вчора, вже завершений', () => {
+    const today = utc(2026, 7, 10)
+    const p: Period = { startDate: utc(2026, 1, 1), endDate: utc(2026, 7, 9) }
+    expect(leaseState(p, today)).toBe('ENDED')
   })
 })
 
@@ -93,5 +113,14 @@ describe('isPremisesOccupied', () => {
 
   it('приміщення з договором, що почнеться в майбутньому, поки вільне', () => {
     expect(isPremisesOccupied([{ startDate: utc(2026, 9, 1), endDate: null }], today)).toBe(false)
+  })
+
+  it('приміщення здане вже в перший день договору', () => {
+    // startDate <= today включно. Мутація `<=` на `<` не валить тестів вище.
+    expect(isPremisesOccupied([{ startDate: today, endDate: null }], today)).toBe(true)
+  })
+
+  it('приміщення ще здане в останній день договору', () => {
+    expect(isPremisesOccupied([{ startDate: utc(2026, 1, 1), endDate: today }], today)).toBe(true)
   })
 })
