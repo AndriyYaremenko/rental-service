@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+build/
+*.tsbuildinfo
+next-env.d.ts
+
+# Prisma
+src/generated/
+prisma/*.db
+prisma/*.db-journal
+
+# Секрети
+.env
+.env.local
