@@ -1338,17 +1338,14 @@ export async function getInvoice(id: string): Promise<InvoiceDetailDTO> {
 ```ts
 // src/app/api/invoices/route.ts
 import { requireUser } from '@/server/auth/guard'
-import { ApiError, json, route } from '@/server/http'
+import { json, route } from '@/server/http'
+import { parseYearMonth } from '@/server/query' // тестований (Task 2), відхиляє відсутній/нечисловий param
 import { listInvoices } from '@/server/services/invoices'
 
 export const GET = route(async (req) => {
   await requireUser()
-  const y = Number(req.nextUrl.searchParams.get('year'))
-  const m = Number(req.nextUrl.searchParams.get('month'))
-  if (!Number.isInteger(y) || !Number.isInteger(m) || m < 1 || m > 12) {
-    throw new ApiError('VALIDATION_FAILED', 'Потрібні коректні year і month')
-  }
-  return json(await listInvoices(y, m))
+  const { year, month } = parseYearMonth(req.nextUrl.searchParams)
+  return json(await listInvoices(year, month))
 })
 ```
 ```ts
