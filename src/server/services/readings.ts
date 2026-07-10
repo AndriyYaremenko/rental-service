@@ -73,33 +73,40 @@ function assertNotDecreased(
   }
 }
 
-/** Масовий upsert показників за місяць. Ключ — (premisesId, year, month), повтор оновлює. */
+/** Масовий upsert показників за місяць. Ключ — (premisesId, year, month), повтор оновлює.
+ *
+ * Атомарно: спершу перевіряємо ВСІ записи (жодного запису в БД), і лише якщо
+ * жоден не зменшується — застосовуємо всі upsert-и в одній транзакції. Інакше
+ * збій на 3-му з 5 записів лишив би 1-2 у БД, а оператор бачив би помилку
+ * «нічого не збережено».
+ */
 export async function saveReadings(input: SaveReadingsInput): Promise<{ saved: number }> {
   const { year, month } = input
+
+  // Фаза 1: перевірка всіх записів до будь-якого запису.
   for (const e of input.entries) {
     const readings = await prisma.meterReading.findMany({ where: { premisesId: e.premisesId } })
     const prev = findPreviousReading(readings, year, month)
     assertNotDecreased(e.premisesId, 'електрики', e.electricity, prev ? prev.electricity.toString() : null, e.electricityReplaced)
     assertNotDecreased(e.premisesId, 'води', e.water, prev ? prev.water.toString() : null, e.waterReplaced)
-
-    await prisma.meterReading.upsert({
-      where: { premisesId_year_month: { premisesId: e.premisesId, year, month } },
-      update: {
-        electricity: e.electricity, water: e.water,
-        electricityReplaced: e.electricityReplaced ?? false,
-        electricityReplacedInitial: e.electricityReplacedInitial ?? null,
-        waterReplaced: e.waterReplaced ?? false,
-        waterReplacedInitial: e.waterReplacedInitial ?? null,
-      },
-      create: {
-        premisesId: e.premisesId, year, month,
-        electricity: e.electricity, water: e.water,
-        electricityReplaced: e.electricityReplaced ?? false,
-        electricityReplacedInitial: e.electricityReplacedInitial ?? null,
-        waterReplaced: e.waterReplaced ?? false,
-        waterReplacedInitial: e.waterReplacedInitial ?? null,
-      },
-    })
   }
+
+  // Фаза 2: усі upsert-и в одній транзакції (все-або-нічого).
+  const data = (e: ReadingEntry) => ({
+    electricity: e.electricity, water: e.water,
+    electricityReplaced: e.electricityReplaced ?? false,
+    electricityReplacedInitial: e.electricityReplacedInitial ?? null,
+    waterReplaced: e.waterReplaced ?? false,
+    waterReplacedInitial: e.waterReplacedInitial ?? null,
+  })
+  await prisma.$transaction(
+    input.entries.map((e) =>
+      prisma.meterReading.upsert({
+        where: { premisesId_year_month: { premisesId: e.premisesId, year, month } },
+        update: data(e),
+        create: { premisesId: e.premisesId, year, month, ...data(e) },
+      }),
+    ),
+  )
   return { saved: input.entries.length }
 }
