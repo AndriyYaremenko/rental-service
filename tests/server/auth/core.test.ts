@@ -31,7 +31,7 @@ describe('authenticate', () => {
 
   it('неправильний пароль → UNAUTHORIZED', async () => {
     await ensureUser()
-    await expect(authenticate(EMAIL, 'ne-toi')).rejects.toBeInstanceOf(ApiError)
+    await expect(authenticate(EMAIL, 'ne-toi')).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
   })
 
   it('неіснуючий email → UNAUTHORIZED (не розкриваємо, що саме не так)', async () => {
@@ -41,6 +41,28 @@ describe('authenticate', () => {
   it('вимкнений користувач не входить', async () => {
     await ensureUser(false)
     await expect(authenticate(EMAIL, 'pravylnyi1')).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+  })
+
+  it('усі три причини невдачі дають ІДЕНТИЧНІ код і повідомлення (без enumeration)', async () => {
+    const caught: ApiError[] = []
+    await ensureUser(true)
+    try { await authenticate(EMAIL, 'ne-toi') } catch (e) { caught.push(e as ApiError) } // неправильний пароль
+    try { await authenticate('nema@example.com', 'x') } catch (e) { caught.push(e as ApiError) } // немає email
+    await ensureUser(false)
+    try { await authenticate(EMAIL, 'pravylnyi1') } catch (e) { caught.push(e as ApiError) } // деактивований
+
+    expect(caught).toHaveLength(3)
+    // Різне повідомлення чи код на різних гілках виказав би, які email існують.
+    expect(new Set(caught.map((e) => e.message)).size).toBe(1)
+    expect(new Set(caught.map((e) => e.code))).toEqual(new Set(['UNAUTHORIZED']))
+  })
+
+  it('повернений SessionUser не містить passwordHash', async () => {
+    await ensureUser()
+    const { user } = await authenticate(EMAIL, 'pravylnyi1')
+    // login-роут віддає цей обʼєкт прямо в HTTP-відповідь — хеш не має протекти.
+    expect(user).not.toHaveProperty('passwordHash')
+    expect(Object.keys(user).sort()).toEqual(['email', 'id', 'name', 'role'])
   })
 })
 
@@ -60,5 +82,12 @@ describe('userFromToken', () => {
     const { token } = await authenticate(EMAIL, 'pravylnyi1')
     await prisma.user.update({ where: { id: userId }, data: { isActive: false } })
     await expect(userFromToken(token)).rejects.toMatchObject({ code: 'UNAUTHORIZED' })
+  })
+
+  it('userFromToken повертає SessionUser без passwordHash', async () => {
+    await ensureUser()
+    const { token } = await authenticate(EMAIL, 'pravylnyi1')
+    const u = await userFromToken(token)
+    expect(u).not.toHaveProperty('passwordHash')
   })
 })
