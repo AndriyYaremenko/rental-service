@@ -1933,6 +1933,15 @@ describe('pickTariffForMonth', () => {
     expect(pickTariffForMonth([jan, midMarch], 2026, 2)).toEqual(jan)
   })
 
+  it('тариф, чинний із першого числа, діє вже цього місяця', () => {
+    // Реалістичний випадок: у seed тариф набуває чинності 1 червня.
+    // Реалізація через firstDayOfMonth зі строгим `<` цей тариф пропустила б.
+    const june: TariffRecord = {
+      effectiveFrom: utc(2026, 6, 1), electricityRateKop: 500, waterRateKop: 1400,
+    }
+    expect(pickTariffForMonth([jan, june], 2026, 6)).toEqual(june)
+  })
+
   it('для пізнішого місяця лишає новий тариф', () => {
     expect(pickTariffForMonth([jan, midMarch], 2026, 9)).toEqual(midMarch)
   })
@@ -2022,7 +2031,7 @@ export function pickTariffForMonth(
 - [ ] **Step 5: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/readings.test.ts tests/domain/tariff.test.ts`
-Expected: PASS — 12 passed
+Expected: PASS — 13 passed
 
 - [ ] **Step 6: Коміт**
 
