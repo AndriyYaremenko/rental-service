@@ -1418,6 +1418,33 @@ describe('advanceKop', () => {
     expect(advanceKop(200_000, 50_000)).toBe(0)
   })
 })
+
+describe('нульовий баланс', () => {
+  it('борг і аванс одночасно нульові', () => {
+    expect(balanceKop(100_000, 100_000)).toBe(0)
+    expect(debtKop(100_000, 100_000)).toBe(0)
+    expect(advanceKop(100_000, 100_000)).toBe(0)
+  })
+
+  it('аванс не повертає мінус-нуль', () => {
+    // -balanceKop(x, x) обчислюється в -0; Math.max(0, -0) нормалізує до +0.
+    // Реалізація на кшталт -Math.min(0, balance) повернула б -0,
+    // і toBe(0) (він працює через Object.is) це спіймав би, а === ні.
+    expect(Object.is(advanceKop(100_000, 100_000), -0)).toBe(false)
+    expect(Object.is(debtKop(100_000, 100_000), -0)).toBe(false)
+  })
+
+  it('борг і аванс взаємно виключні', () => {
+    const cases: ReadonlyArray<readonly [number, number]> = [
+      [200_000, 50_000],   // борг
+      [100_000, 150_000],  // аванс
+      [100_000, 100_000],  // нуль
+    ]
+    for (const [invoiced, paid] of cases) {
+      expect(Math.min(debtKop(invoiced, paid), advanceKop(invoiced, paid))).toBe(0)
+    }
+  })
+})
 ```
 
 - [ ] **Step 2: Запустити тести і переконатися, що падають**
@@ -1431,15 +1458,23 @@ Expected: FAIL — `Cannot find module '@/domain/debt'`
 ```ts
 import type { Kop } from './types'
 
-/** Додатнє — борг, відʼємне — аванс. */
+/** Додатнє — борг, відʼємне — аванс. Єдине місце, де виконується віднімання. */
 export function balanceKop(totalInvoicedKop: Kop, totalPaidKop: Kop): number {
   return totalInvoicedKop - totalPaidKop
 }
 
+/** Борг орендаря. Нуль, якщо він переплатив, — відʼємного боргу не буває. */
 export function debtKop(totalInvoicedKop: Kop, totalPaidKop: Kop): Kop {
   return Math.max(0, balanceKop(totalInvoicedKop, totalPaidKop))
 }
 
+/**
+ * Переплата орендаря. Нуль, якщо він у боргу.
+ *
+ * `Math.max(0, …)` тут не лише відсікає відʼємне: при нульовому балансі
+ * вираз `-0` нормалізується до `+0`. Реалізація `-Math.min(0, balance)`
+ * виглядає еквівалентною, але повертає `-0`.
+ */
 export function advanceKop(totalInvoicedKop: Kop, totalPaidKop: Kop): Kop {
   return Math.max(0, -balanceKop(totalInvoicedKop, totalPaidKop))
 }
@@ -1448,7 +1483,7 @@ export function advanceKop(totalInvoicedKop: Kop, totalPaidKop: Kop): Kop {
 - [ ] **Step 4: Запустити тести і переконатися, що проходять**
 
 Run: `npm test -- tests/domain/debt.test.ts`
-Expected: PASS — 6 passed
+Expected: PASS — 9 passed
 
 - [ ] **Step 5: Коміт**
 
