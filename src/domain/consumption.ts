@@ -3,13 +3,13 @@ import { NegativeConsumptionError, NoPreviousReadingError } from './errors'
 import type { MeterSideInput } from './types'
 
 /**
- * Споживання за місяць.
+ * База, від якої рахується споживання.
  *
- * Якщо лічильник міняли, базою є початковий показник нового лічильника
- * (зазвичай нуль), а не останній показник старого — інакше споживання
- * вийшло б відʼємним.
+ * Якщо лічильник міняли, це початковий показник нового лічильника
+ * (зазвичай нуль), а не останній показник старого. Саме це значення
+ * заморожується в рахунку як prevElectricity / prevWater.
  */
-export function consumption(side: MeterSideInput): Decimal {
+export function consumptionBase(side: MeterSideInput): Decimal {
   const base = side.replaced
     ? (side.replacedInitial ?? new Decimal(0))
     : side.prev
@@ -18,10 +18,19 @@ export function consumption(side: MeterSideInput): Decimal {
     throw new NoPreviousReadingError()
   }
 
-  const used = side.curr.minus(base)
+  return base
+}
+
+/**
+ * Споживання за місяць = поточний показник − база.
+ *
+ * Відʼємний результат — помилка (лічильник не міг «відмотати» назад),
+ * а не відʼємний рахунок.
+ */
+export function consumption(side: MeterSideInput): Decimal {
+  const used = side.curr.minus(consumptionBase(side))
   if (used.isNegative()) {
     throw new NegativeConsumptionError(used.toString())
   }
-
   return used
 }

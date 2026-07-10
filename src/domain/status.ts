@@ -29,6 +29,8 @@ export function isLeaseActiveInMonth(period: Period, year: number, month: number
   const monthStart = firstDayOfMonth(year, month)
   const monthEnd = lastDayOfMonth(year, month)
 
+  // Рівність startDate === monthEnd недосяжна за домовленістю (дати опівнічні,
+  // monthEnd — 23:59:59.999), тому окремим тестом ця межа не покрита.
   const startsInTime = period.startDate.getTime() <= monthEnd.getTime()
   const endsInTime = period.endDate === null || period.endDate.getTime() >= monthStart.getTime()
 

@@ -1,6 +1,6 @@
 import { Decimal } from 'decimal.js'
 import { describe, expect, it } from 'vitest'
-import { consumption } from '@/domain/consumption'
+import { consumption, consumptionBase } from '@/domain/consumption'
 import { NegativeConsumptionError, NoPreviousReadingError } from '@/domain/errors'
 import type { MeterSideInput } from '@/domain/types'
 
@@ -70,5 +70,27 @@ describe('consumption', () => {
       replaced: true,
       replacedInitial: new Decimal(5),
     }))).toThrow(NegativeConsumptionError)
+  })
+})
+
+describe('consumptionBase', () => {
+  it('без заміни повертає попередній показник', () => {
+    expect(consumptionBase(side({ prev: new Decimal(100) })).toString()).toBe('100')
+  })
+
+  it('при заміні повертає початковий показник нового лічильника', () => {
+    expect(
+      consumptionBase(side({ prev: new Decimal(900), replaced: true, replacedInitial: new Decimal(5) })).toString(),
+    ).toBe('5')
+  })
+
+  it('при заміні без початкового показника повертає нуль', () => {
+    expect(
+      consumptionBase(side({ prev: new Decimal(900), replaced: true, replacedInitial: null })).toString(),
+    ).toBe('0')
+  })
+
+  it('падає без попереднього показника і без заміни', () => {
+    expect(() => consumptionBase(side({ prev: null }))).toThrow(NoPreviousReadingError)
   })
 })

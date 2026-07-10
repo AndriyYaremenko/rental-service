@@ -1,4 +1,4 @@
-import { consumption } from './consumption'
+import { consumption, consumptionBase } from './consumption'
 import { roundHalfUp } from './money'
 import type { InvoiceLines, LeaseTerms, MeterSideInput, TariffRates } from './types'
 
@@ -12,11 +12,17 @@ export interface BuildInvoiceInput {
 /**
  * Рядки рахунку за місяць.
  *
- * Кожен рядок округлюється до копійки окремо, а підсумок є сумою вже
- * округлених цілих. Тому загальна сума не «пливе» відносно рядків,
- * які бачить орендар у роздруківці.
+ * Повертає рівно те, що зберігається в рядку Invoice: заморожені ставки,
+ * базу й поточний показник кожного ресурсу, споживання і суми. Шар API
+ * розпаковує результат у Prisma без додаткових обчислень, тож збережений
+ * рядок не може розійтися з тим, що порахував домен.
+ *
+ * Кожен рядок округлюється до копійки окремо, а підсумок — сума вже
+ * округлених цілих, тому загальна сума не «пливе» відносно рядків.
  */
 export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
+  const prevElectricity = consumptionBase(input.electricity)
+  const prevWater = consumptionBase(input.water)
   const electricityUsed = consumption(input.electricity)
   const waterUsed = consumption(input.water)
 
@@ -25,7 +31,13 @@ export function buildInvoice(input: BuildInvoiceInput): InvoiceLines {
   const { rentKop, garbageKop } = input.terms
 
   return {
+    electricityRateKop: input.rates.electricityRateKop,
+    waterRateKop: input.rates.waterRateKop,
+    prevElectricity,
+    currElectricity: input.electricity.curr,
     electricityUsed,
+    prevWater,
+    currWater: input.water.curr,
     waterUsed,
     rentKop,
     electricityKop,

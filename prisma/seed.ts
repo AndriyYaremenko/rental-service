@@ -5,6 +5,7 @@ import { prisma } from '../src/server/db'
 import { seed } from './seed-data'
 
 seed()
+  .then(() => console.log('Seed виконано: admin@rent.ksm.in.ua / admin12345'))
   .catch((e) => {
     console.error(e)
     process.exit(1)

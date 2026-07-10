@@ -20,9 +20,12 @@ describe('pickTariffForMonth', () => {
     expect(pickTariffForMonth([jan, midMarch], 2026, 2)).toEqual(jan)
   })
 
-  it('тариф, чинний із першого числа, діє вже цього місяця', () => {
-    // Реалістичний випадок: у seed тариф набуває чинності 1 червня.
-    // Реалізація через firstDayOfMonth зі строгим `<` цей тариф пропустила б.
+  it('тариф, чинний із першого числа місяця, застосовується вже цього місяця', () => {
+    // Базовий випадок: effectiveFrom рівно 1-го числа входить у свій місяць.
+    // Він НЕ розрізняє firstDayOfMonth від lastDayOfMonth — firstDayOfMonth(2026,6)
+    // збігається з effectiveFrom до мілісекунди, тож обидві реалізації з `<=`
+    // проходять однаково. Кінець-місяця-правило доводить лише тест із тарифом
+    // від 15 березня вище.
     const june: TariffRecord = {
       effectiveFrom: utc(2026, 6, 1), electricityRateKop: 500, waterRateKop: 1400,
     }
@@ -34,7 +37,10 @@ describe('pickTariffForMonth', () => {
   })
 
   it('не залежить від порядку у вхідному масиві', () => {
-    expect(pickTariffForMonth([midMarch, jan], 2026, 2)).toEqual(jan)
+    // Обидва тарифи чинні в березні, тож reduce справді має вибрати найновіший
+    // незалежно від порядку — на відміну від місяця, де придатний лише один.
+    expect(pickTariffForMonth([midMarch, jan], 2026, 3)).toEqual(midMarch)
+    expect(pickTariffForMonth([jan, midMarch], 2026, 3)).toEqual(midMarch)
   })
 
   it('повертає null, якщо жоден тариф ще не діяв', () => {

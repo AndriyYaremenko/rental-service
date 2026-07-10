@@ -94,3 +94,31 @@ describe('buildInvoice', () => {
     expect(lines.electricityKop).toBe(30 * 432)
   })
 })
+
+describe('buildInvoice — поля для збереження в рахунку', () => {
+  it('копіює заморожені ставки в рахунок', () => {
+    const lines = buildInvoice(input())
+    expect(lines.electricityRateKop).toBe(432)
+    expect(lines.waterRateKop).toBe(1250)
+  })
+
+  it('prev і curr дають рівно те саме споживання, що й *Used', () => {
+    const lines = buildInvoice(input())
+    expect(lines.currElectricity.minus(lines.prevElectricity).equals(lines.electricityUsed)).toBe(true)
+    expect(lines.currWater.minus(lines.prevWater).equals(lines.waterUsed)).toBe(true)
+  })
+
+  it('при заміні лічильника prev — база нового, а не показник старого', () => {
+    const lines = buildInvoice(input({
+      electricity: {
+        curr: new Decimal(30), prev: new Decimal(900),
+        replaced: true, replacedInitial: new Decimal(0),
+      },
+    }))
+    expect(lines.prevElectricity.toString()).toBe('0')   // не 900
+    expect(lines.currElectricity.toString()).toBe('30')
+    expect(lines.electricityUsed.toString()).toBe('30')
+    // інваріант curr − prev === used зберігається навіть після заміни
+    expect(lines.currElectricity.minus(lines.prevElectricity).equals(lines.electricityUsed)).toBe(true)
+  })
+})

@@ -96,6 +96,4 @@ export async function seed() {
   for (const r of readings) {
     await prisma.meterReading.create({ data: { ...r, readAt: utc(r.year, r.month, 28) } })
   }
-
-  console.log('Seed виконано: admin@rent.ksm.in.ua / admin12345')
 }

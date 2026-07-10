@@ -21,7 +21,13 @@ export interface TariffRates {
 }
 
 export interface InvoiceLines {
+  electricityRateKop: Kop
+  waterRateKop: Kop
+  prevElectricity: Decimal
+  currElectricity: Decimal
   electricityUsed: Decimal
+  prevWater: Decimal
+  currWater: Decimal
   waterUsed: Decimal
   rentKop: Kop
   electricityKop: Kop
