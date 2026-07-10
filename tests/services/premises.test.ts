@@ -79,4 +79,16 @@ describe('premises service', () => {
     expect(p.notes).toBe('щось')
     expect((await updatePremises(p.id, { notes: null })).notes).toBeNull()
   })
+
+  it('listPremises повертає елементи у формі DTO (не сирі рядки Prisma)', async () => {
+    // Список — єдине місце, де raw-row leak (Decimal-обʼєкт, createdAt, leases)
+    // пройшов би непоміченим. Перевіряємо форму саме елемента списку.
+    const p = track(await createPremises({ locationId: await loc(), unitNumber: '7', type: 'офіс', areaM2: '33.30' }))
+    const item = (await listPremises()).find((x) => x.id === p.id)
+    expect(item).toBeDefined()
+    expect(typeof item!.areaM2).toBe('string')
+    expect(item!.areaM2).toBe('33.3')
+    expect(item!.occupied).toBe(false)
+    expect(Object.keys(item!).sort()).toEqual(['areaM2', 'floor', 'id', 'locationId', 'notes', 'occupied', 'type', 'unitNumber'])
+  })
 })
