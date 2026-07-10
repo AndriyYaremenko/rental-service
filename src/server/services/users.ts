@@ -38,9 +38,21 @@ export async function createUser(data: UserCreate): Promise<UserDTO> {
   }
 }
 
-export async function updateUser(id: string, data: UserUpdate): Promise<UserDTO> {
+export async function updateUser(id: string, data: UserUpdate, currentUserId: string): Promise<UserDTO> {
   const existing = await prisma.user.findUnique({ where: { id } })
   if (!existing) throw notFound()
+
+  // Захист від самоблокування (симетрично до deleteUser): адмін не може
+  // деактивувати чи понизити САМ СЕБЕ, інакше єдиний адмін позбавив би
+  // систему керування користувачами, і відновити можна лише через БД.
+  if (id === currentUserId) {
+    if (data.isActive === false) {
+      throw new ApiError('CONFLICT', 'Не можна деактивувати власний обліковий запис')
+    }
+    if (data.role === 'USER') {
+      throw new ApiError('CONFLICT', 'Не можна понизити роль власного облікового запису')
+    }
+  }
 
   const patch: Prisma.UserUpdateInput = {}
   if (data.name !== undefined) patch.name = data.name

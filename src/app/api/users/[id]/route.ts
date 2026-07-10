@@ -4,8 +4,8 @@ import { deleteUser, updateUser } from '@/server/services/users'
 import { userUpdateSchema } from '@/lib/validation/user'
 
 export const PATCH = route(async (req, { params }: { params: Promise<{ id: string }> }) => {
-  await requireAdmin()
-  return json(await updateUser((await params).id, await parseBody(req, userUpdateSchema)))
+  const admin = await requireAdmin()
+  return json(await updateUser((await params).id, await parseBody(req, userUpdateSchema), admin.id))
 })
 
 export const DELETE = route(async (_req, { params }: { params: Promise<{ id: string }> }) => {

@@ -91,4 +91,11 @@ describe('premises service', () => {
     expect(item!.occupied).toBe(false)
     expect(Object.keys(item!).sort()).toEqual(['areaM2', 'floor', 'id', 'locationId', 'notes', 'occupied', 'type', 'unitNumber'])
   })
+
+  it('updatePremises на вже зайнятий unitNumber у локації → CONFLICT (не 500)', async () => {
+    const locId = await loc()
+    track(await createPremises({ locationId: locId, unitNumber: 'A', type: 'офіс', areaM2: '10' }))
+    const b = track(await createPremises({ locationId: locId, unitNumber: 'B', type: 'офіс', areaM2: '20' }))
+    await expect(updatePremises(b.id, { unitNumber: 'A' })).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
 })

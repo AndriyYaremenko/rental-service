@@ -26,7 +26,7 @@ describe('users service', () => {
 
   it('деактивує користувача', async () => {
     const u = track(await createUser({ email: 'deact@example.com', name: 'Деакт', role: 'USER', password: 'parol12345' }))
-    expect((await updateUser(u.id, { isActive: false })).isActive).toBe(false)
+    expect((await updateUser(u.id, { isActive: false }, 'інший-адмін')).isActive).toBe(false)
   })
 
   it('createUser хешує пароль, а не зберігає відкритим текстом', async () => {
@@ -42,7 +42,7 @@ describe('users service', () => {
     const u = track(await createUser({ email: 'pw@example.com', name: 'Пароль', role: 'USER', password: 'staryi12345' }))
     const before = (await prisma.user.findUniqueOrThrow({ where: { id: u.id } })).passwordHash
 
-    await updateUser(u.id, { password: 'novyi123456' })
+    await updateUser(u.id, { password: 'novyi123456' }, 'інший-адмін')
     const after = (await prisma.user.findUniqueOrThrow({ where: { id: u.id } })).passwordHash
 
     // Не літерал, і саме ЗМІНИВСЯ (мовчазний no-op лишив би старий хеш),
@@ -66,7 +66,22 @@ describe('users service', () => {
 
   // Mandatory tests from plan constraint
   it('updateUser неіснуючого id → NOT_FOUND', async () => {
-    await expect(updateUser('неіснуючий-id', { name: 'X' })).rejects.toMatchObject({ code: 'NOT_FOUND' })
+    await expect(updateUser('неіснуючий-id', { name: 'X' }, 'інший-адмін')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('адмін не може деактивувати САМ СЕБЕ → CONFLICT', async () => {
+    const u = track(await createUser({ email: 'self-deact@example.com', name: 'Я', role: 'ADMIN', password: 'parol12345' }))
+    await expect(updateUser(u.id, { isActive: false }, u.id)).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
+  it('адмін не може понизити роль САМ СОБІ → CONFLICT', async () => {
+    const u = track(await createUser({ email: 'self-demote@example.com', name: 'Я', role: 'ADMIN', password: 'parol12345' }))
+    await expect(updateUser(u.id, { role: 'USER' }, u.id)).rejects.toMatchObject({ code: 'CONFLICT' })
+  })
+
+  it('адмін МОЖЕ деактивувати ІНШОГО (guard лише для себе)', async () => {
+    const other = track(await createUser({ email: 'other-deact@example.com', name: 'Інший', role: 'ADMIN', password: 'parol12345' }))
+    expect((await updateUser(other.id, { isActive: false }, 'я-інший-адмін')).isActive).toBe(false)
   })
 
   it('deleteUser неіснуючого id (не поточний) → NOT_FOUND', async () => {

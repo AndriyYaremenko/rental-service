@@ -74,12 +74,21 @@ export async function createPremises(data: PremisesCreate): Promise<PremisesDTO>
 
 export async function updatePremises(id: string, data: PremisesUpdate): Promise<PremisesDTO> {
   await getPremises(id)
-  const p = await prisma.premises.update({
-    where: { id },
-    data,
-    include: { leases: { select: { startDate: true, endDate: true } } },
-  })
-  return toDTO(p, new Date())
+  try {
+    const p = await prisma.premises.update({
+      where: { id },
+      data,
+      include: { leases: { select: { startDate: true, endDate: true } } },
+    })
+    return toDTO(p, new Date())
+  } catch (e) {
+    // PATCH unitNumber/locationId може зіткнутися з наявною парою
+    // @@unique([locationId, unitNumber]) — це 409, не 500.
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+      throw new ApiError('CONFLICT', 'Приміщення з таким номером у цій локації вже існує')
+    }
+    throw e
+  }
 }
 
 export async function deletePremises(id: string): Promise<void> {
