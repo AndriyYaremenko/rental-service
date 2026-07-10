@@ -21,6 +21,11 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 
 - **Prisma 7:** генератор `provider = "prisma-client"` з обовʼязковим `output`.
   `prisma-client-js` — legacy, не використовувати.
+- **`datasource` у схемі НЕ містить `url`.** Prisma 7 відхиляє це помилкою
+  `P1012`. Рядок підключення — у `prisma.config.ts`, а `PrismaClient` вимагає
+  driver adapter (`@prisma/adapter-better-sqlite3`).
+- **`DATABASE_URL="file:./prisma/dev.db"`** — з явним `prisma/`. Адаптер
+  резолвить шлях відносно робочого каталогу процесу, а не каталогу схеми.
 - **TypeScript запінено на `^6.0.3`. Не оновлювати до 7.** `typescript@latest`
   зараз 7.0.2 — нативний Go-порт із перебудованим пакетом. `next@16.2.10`
   резолвить TS хардкодом `typescript/lib/typescript.js` з `exportsRestrict: true`
@@ -48,7 +53,8 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
 
 | Файл | Відповідальність |
 |---|---|
-| `prisma/schema.prisma` | схема БД |
+| `prisma.config.ts` | конфіг Prisma 7: шлях схеми, міграцій, `datasource.url` |
+| `prisma/schema.prisma` | схема БД (без `url` — див. Global Constraints) |
 | `prisma/seed-data.ts` | функція `seed()` — тестові дані |
 | `prisma/seed.ts` | тонкий CLI-обгортник над `seed()` |
 | `src/server/db.ts` | singleton PrismaClient |
@@ -284,7 +290,8 @@ git commit -m "chore: каркас Next.js, TypeScript і Vitest
 ### Task 2: Prisma-схема, міграція і клієнт
 
 **Files:**
-- Create: `prisma/schema.prisma`, `src/server/db.ts`
+- Create: `prisma.config.ts`, `prisma/schema.prisma`, `src/server/db.ts`
+- Modify: `.env`, `.env.example`, `.gitignore`
 - Test: `tests/db.test.ts`
 
 **Interfaces:**
@@ -293,7 +300,39 @@ git commit -m "chore: каркас Next.js, TypeScript і Vitest
   моделі `User`, `Location`, `Premises`, `Tenant`, `Lease`, `Tariff`,
   `MeterReading`, `Invoice`, `Payment`; enum `Role`, `PaymentMethod`
 
-- [ ] **Step 1: Написати схему**
+- [ ] **Step 1: Встановити адаптер і налаштувати Prisma 7**
+
+Prisma 7 не приймає `url` у схемі й вимагає driver adapter.
+
+```bash
+npm install @prisma/adapter-better-sqlite3@7
+```
+
+Виправити `DATABASE_URL` у `.env` та `.env.example` — шлях резолвиться
+відносно робочого каталогу процесу, тому `prisma/` вказуємо явно:
+```
+DATABASE_URL="file:./prisma/dev.db"
+```
+
+`prisma.config.ts` у корені проєкту:
+```ts
+import 'dotenv/config'
+import { defineConfig, env } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: { path: 'prisma/migrations' },
+  datasource: { url: env('DATABASE_URL') },
+})
+```
+
+Додати до `.gitignore` побічні файли SQLite у режимі WAL:
+```
+prisma/*.db-wal
+prisma/*.db-shm
+```
+
+- [ ] **Step 2: Написати схему**
 
 `prisma/schema.prisma`:
 ```prisma
@@ -304,7 +343,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  // url навмисно відсутній — живе в prisma.config.ts (Prisma 7)
 }
 
 enum Role          { ADMIN USER }
@@ -455,25 +494,26 @@ model Payment {
 `prevElectricity` зберігає **базу розрахунку**: звичайний попередній показник
 або початковий показник нового лічильника, якщо його міняли.
 
-- [ ] **Step 2: Створити міграцію**
+- [ ] **Step 3: Створити міграцію**
 
 Run: `npm run db:migrate -- --name init`
 Expected: створено `prisma/migrations/<timestamp>_init/migration.sql`,
 у консолі — `Your database is now in sync with your schema.`
 
-Перевір, що файл бази справді зʼявився поруч зі схемою:
+Перевір, що файл бази лежить саме там, де його чекає `.gitignore`:
 
-Run: `ls prisma/dev.db`
-Expected: файл існує. SQLite-шлях `file:./dev.db` резолвиться відносно
-каталогу `prisma/`, а не кореня проєкту.
+Run: `ls prisma/dev.db && git status --porcelain`
+Expected: файл існує, і `git status` **не показує** його як untracked.
+Якщо база опинилася в корені репозиторію — зупинись і повідом: це справжня
+проблема, а не дрібниця.
 
-- [ ] **Step 3: Згенерувати клієнт і підтвердити шлях імпорту**
+- [ ] **Step 4: Згенерувати клієнт і підтвердити шлях імпорту**
 
 Run: `npm run db:generate && ls src/generated/prisma`
 Expected: у каталозі є `client.ts` (або `index.ts`) та `.d.ts`-файли.
 Запамʼятай точну назву — вона потрібна в наступному кроці. Не вгадуй її.
 
-- [ ] **Step 4: Написати падаючий тест на підключення**
+- [ ] **Step 5: Написати падаючий тест на підключення**
 
 `tests/db.test.ts`:
 ```ts
@@ -516,41 +556,55 @@ describe('підключення до БД', () => {
 Тести прибирають за собою, тому не залежать від seed із Task 11
 і не заважають йому.
 
-- [ ] **Step 5: Запустити тест і переконатися, що падає**
+- [ ] **Step 6: Запустити тест і переконатися, що падає**
 
 Run: `npm test -- tests/db.test.ts`
 Expected: FAIL — `Cannot find module '@/server/db'`
 
-- [ ] **Step 6: Реалізувати singleton клієнта**
+- [ ] **Step 7: Реалізувати singleton клієнта**
 
-`src/server/db.ts` (шлях імпорту — той, що підтверджено в Step 3):
+`src/server/db.ts` (шлях імпорту клієнта — той, що підтверджено в Step 4):
 ```ts
 // Відносний шлях, НЕ alias '@/': seed запускається через tsx,
 // який не резолвить paths із tsconfig.
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
 import { PrismaClient } from '../generated/prisma/client'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
-export const prisma = globalForPrisma.prisma ?? new PrismaClient()
+function createClient(): PrismaClient {
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('DATABASE_URL не задано')
+  // Prisma 7 вимагає driver adapter — без нього конструктор кидає помилку
+  return new PrismaClient({ adapter: new PrismaBetterSqlite3({ url }) })
+}
+
+export const prisma = globalForPrisma.prisma ?? createClient()
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 ```
 
+Тут навмисно немає `import 'dotenv/config'`: `dotenv` — devDependency, і
+продакшн-збірка не повинна від нього залежати. Змінні підвантажують ті, кому
+це потрібно: Next.js робить це сам, тести — через `tests/setup.ts`,
+seed-скрипт — власним імпортом (Task 11).
+
 Singleton потрібен, бо hot-reload у dev інакше плодить підключення.
 Тести імпортують цей модуль як `@/server/db` — alias резолвить Vitest.
 
-- [ ] **Step 7: Запустити тест і переконатися, що проходить**
+- [ ] **Step 8: Запустити тест і переконатися, що проходить**
 
 Run: `npm test -- tests/db.test.ts`
 Expected: PASS
 
-- [ ] **Step 8: Коміт**
+- [ ] **Step 9: Коміт**
 
 ```bash
 git add -A
 git commit -m "feat: Prisma-схема, початкова міграція, singleton клієнта
 
-Генератор prisma-client (Prisma 7), не legacy prisma-client-js.
+Prisma 7: генератор prisma-client, url переїхав у prisma.config.ts,
+PrismaClient отримує driver adapter better-sqlite3.
 Похідні статуси в схемі відсутні навмисно."
 ```
 
@@ -1963,6 +2017,9 @@ export async function seed() {
 
 `prisma/seed.ts` — тонка CLI-обгортка:
 ```ts
+// Має стояти ПЕРШИМ: db.ts читає process.env.DATABASE_URL при завантаженні
+// модуля, а tsx (на відміну від Next.js) сам .env не підвантажує.
+import 'dotenv/config'
 import { prisma } from '../src/server/db'
 import { seed } from './seed-data'
 

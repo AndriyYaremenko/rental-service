@@ -140,6 +140,36 @@ legacy-пакетом. Актуальний генератор — `prisma-clien
 `output`. Точний шлях імпорту згенерованого клієнта підтверджується емпірично
 (`prisma generate` + перевірка каталогу), а не за памʼяттю.
 
+**Connection URL більше не живе у схемі.** Prisma 7 відхиляє
+`datasource { url = env(...) }` помилкою `P1012`. Рядок підключення переїхав у
+`prisma.config.ts` у корені проєкту, а `PrismaClient` тепер **вимагає driver
+adapter**. Для локального SQLite це `@prisma/adapter-better-sqlite3`:
+
+```ts
+// prisma.config.ts
+import 'dotenv/config'
+import { defineConfig, env } from 'prisma/config'
+
+export default defineConfig({
+  schema: 'prisma/schema.prisma',
+  migrations: { path: 'prisma/migrations' },
+  datasource: { url: env('DATABASE_URL') },
+})
+```
+
+```ts
+// src/server/db.ts
+import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import { PrismaClient } from '../generated/prisma/client'
+
+const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL! })
+export const prisma = new PrismaClient({ adapter })
+```
+
+**Шлях до файлу БД.** Адаптер резолвить `file:./…` відносно робочого каталогу
+процесу, а не каталогу схеми. Тому `DATABASE_URL="file:./prisma/dev.db"` —
+з явним `prisma/`. Інакше база лягла б у корінь репозиторію повз `.gitignore`.
+
 **Seed** запускається окремим скриптом (`tsx prisma/seed.ts`), а не через
 `prisma db seed` — щоб не залежати від змін формату конфігурації Prisma.
 
@@ -150,7 +180,7 @@ generator client {
   provider = "prisma-client"          // Prisma 7: не "prisma-client-js"
   output   = "../src/generated/prisma"
 }
-datasource db { provider = "sqlite"; url = env("DATABASE_URL") }
+datasource db { provider = "sqlite" }  // url — у prisma.config.ts, див. §4.1
 
 enum Role          { ADMIN USER }
 enum PaymentMethod { CASH CARD BANK }   // готівка / картка / рахунок
