@@ -26,6 +26,8 @@ Prisma й React. Вони не знають про базу і про HTTP. Pris
   driver adapter (`@prisma/adapter-better-sqlite3`).
 - **`DATABASE_URL="file:./prisma/dev.db"`** — з явним `prisma/`. Адаптер
   резолвить шлях відносно робочого каталогу процесу, а не каталогу схеми.
+- **Enum у PSL — кожне значення на окремому рядку.** Однорядковий
+  `enum Role { ADMIN USER }` невалідний і падає з `P1012`.
 - **TypeScript запінено на `^6.0.3`. Не оновлювати до 7.** `typescript@latest`
   зараз 7.0.2 — нативний Go-порт із перебудованим пакетом. `next@16.2.10`
   резолвить TS хардкодом `typescript/lib/typescript.js` з `exportsRestrict: true`
@@ -346,8 +348,16 @@ datasource db {
   // url навмисно відсутній — живе в prisma.config.ts (Prisma 7)
 }
 
-enum Role          { ADMIN USER }
-enum PaymentMethod { CASH CARD BANK }
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK
+}
 
 model User {
   id           String   @id @default(cuid())

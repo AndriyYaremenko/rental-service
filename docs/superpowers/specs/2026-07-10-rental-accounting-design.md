@@ -182,8 +182,18 @@ generator client {
 }
 datasource db { provider = "sqlite" }  // url — у prisma.config.ts, див. §4.1
 
-enum Role          { ADMIN USER }
-enum PaymentMethod { CASH CARD BANK }   // готівка / картка / рахунок
+// PSL вимагає кожне значення на окремому рядку.
+// Однорядковий `enum Role { ADMIN USER }` падає з P1012.
+enum Role {
+  ADMIN
+  USER
+}
+
+enum PaymentMethod {   // готівка / картка / рахунок
+  CASH
+  CARD
+  BANK
+}
 
 model User {
   id           String   @id @default(cuid())
