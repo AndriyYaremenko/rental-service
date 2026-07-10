@@ -30,4 +30,9 @@ describe('parseYearMonth', () => {
     expect(() => parseYearMonth(p('year=2026&month=0'))).toThrow()
     expect(() => parseYearMonth(p('year=2026&month=13'))).toThrow()
   })
+
+  it('рік поза розумним діапазоном → VALIDATION_FAILED', () => {
+    expect(() => parseYearMonth(p('year=1999&month=6'))).toThrow()
+    expect(() => parseYearMonth(p('year=3001&month=6'))).toThrow()
+  })
 })
