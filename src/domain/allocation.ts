@@ -31,10 +31,13 @@ export function allocatePayments(
     const coveredKop = Math.min(pool, invoice.totalKop)
     pool -= coveredKop
 
+    // PAID перевіряється ПЕРШИМ: для рахунку на нульову суму умови
+    // `coveredKop === 0` і `coveredKop === totalKop` істинні одночасно,
+    // а рахунок на 0 грн нічого не вимагає, отже закритий.
     const status: InvoiceStatus =
-      coveredKop === 0 ? 'UNPAID'
-      : coveredKop < invoice.totalKop ? 'PARTIAL'
-      : 'PAID'
+      coveredKop === invoice.totalKop ? 'PAID'
+      : coveredKop === 0 ? 'UNPAID'
+      : 'PARTIAL'
 
     byInvoiceId.set(invoice.id, { coveredKop, status })
   }

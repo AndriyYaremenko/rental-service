@@ -58,4 +58,31 @@ describe('allocatePayments', () => {
     allocatePayments(list, 0)
     expect(list[0]!.id).toBe('feb')
   })
+
+  it('нульовий рахунок вважається оплаченим, а не вічним боргом', () => {
+    // covered === 0 і covered === totalKop істинні одночасно.
+    // Порядок перевірок у тернарнику вирішує; має перемогти PAID.
+    const zero = inv('zero', 2026, 1, 0)
+    const r = allocatePayments([zero], 0)
+    expect(r.byInvoiceId.get('zero')!).toEqual({ coveredKop: 0, status: 'PAID' })
+    expect(r.advanceKop).toBe(0)
+  })
+
+  it("нульовий рахунок не з'їдає оплату", () => {
+    const zero = inv('zero', 2026, 1, 0)
+    const r = allocatePayments([zero, jan], 100_000)
+    expect(r.byInvoiceId.get('zero')!.status).toBe('PAID')
+    expect(r.byInvoiceId.get('jan')!.status).toBe('PAID')
+    expect(r.advanceKop).toBe(0)
+  })
+
+  it('createdAt розводить рахунки за той самий місяць', () => {
+    const early = { id: 'early', year: 2026, month: 1, totalKop: 100_000,
+                    createdAt: new Date(Date.UTC(2026, 0, 5)) }
+    const late = { id: 'late', year: 2026, month: 1, totalKop: 100_000,
+                   createdAt: new Date(Date.UTC(2026, 0, 20)) }
+    const r = allocatePayments([late, early], 100_000)
+    expect(r.byInvoiceId.get('early')!.status).toBe('PAID')
+    expect(r.byInvoiceId.get('late')!.status).toBe('UNPAID')
+  })
 })
