@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Equinox Management Executive Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(229, 238, 255, 0.5);
+        }
+        /* Custom scrollbar for clean UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #d3e4fe;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #b7c8de;
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container": "#e5eeff",
+                      "tertiary-fixed": "#dde3eb",
+                      "surface-container-lowest": "#ffffff",
+                      "on-tertiary": "#ffffff",
+                      "on-background": "#0b1c30",
+                      "primary-fixed-dim": "#b7c8de",
+                      "inverse-surface": "#213145",
+                      "tertiary-container": "#242a30",
+                      "outline": "#74777d",
+                      "error-container": "#ffdad6",
+                      "primary-container": "#1a2b3c",
+                      "on-secondary-fixed-variant": "#004f50",
+                      "secondary-container": "#96efee",
+                      "surface-dim": "#cbdbf5",
+                      "primary": "#041627",
+                      "inverse-primary": "#b7c8de",
+                      "on-tertiary-fixed": "#161c22",
+                      "on-error-container": "#93000a",
+                      "on-tertiary-container": "#8b9198",
+                      "secondary": "#006a6a",
+                      "surface-variant": "#d3e4fe",
+                      "primary-fixed": "#d2e4fb",
+                      "surface-container-low": "#eff4ff",
+                      "tertiary": "#0f161b",
+                      "error": "#ba1a1a",
+                      "on-surface-variant": "#44474c",
+                      "background": "#f8f9ff",
+                      "on-error": "#ffffff",
+                      "tertiary-fixed-dim": "#c1c7cf",
+                      "outline-variant": "#c4c6cd",
+                      "on-primary-fixed": "#0b1d2d",
+                      "surface-container-highest": "#d3e4fe",
+                      "surface-container-high": "#dce9ff",
+                      "on-surface": "#0b1c30",
+                      "on-secondary-container": "#006e6e",
+                      "on-primary-container": "#8192a7",
+                      "inverse-on-surface": "#eaf1ff",
+                      "on-primary": "#ffffff",
+                      "surface": "#f8f9ff",
+                      "on-secondary": "#ffffff",
+                      "on-secondary-fixed": "#002020",
+                      "on-tertiary-fixed-variant": "#41474e",
+                      "surface-tint": "#4f6073",
+                      "on-primary-fixed-variant": "#38485a",
+                      "secondary-fixed-dim": "#7dd5d4",
+                      "surface-bright": "#f8f9ff",
+                      "secondary-fixed": "#99f1f1"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "container-margin": "32px",
+                      "stack-md": "16px",
+                      "stack-sm": "8px",
+                      "unit": "8px",
+                      "stack-lg": "32px",
+                      "gutter": "24px",
+                      "card-padding": "24px"
+              },
+              "fontFamily": {
+                      "headline-md": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-md-mobile": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "body-md": ["Inter"],
+                      "display-lg": ["Inter"]
+              },
+              "fontSize": {
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                      "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "headline-md-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                      "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background min-h-screen">
+<!-- SideNavBar -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface dark:bg-surface-container-lowest flex flex-col py-stack-lg z-50">
+<div class="px-6 mb-10">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary dark:text-inverse-primary">Equinox Management</h1>
+<p class="text-on-surface-variant font-body-md text-body-md">Facility Operations</p>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 text-secondary dark:text-secondary-fixed-dim font-bold border-r-4 border-secondary transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-inverse-primary hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">groups</span>
+<span class="font-body-md text-body-md">Tenants</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-inverse-primary hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">domain</span>
+<span class="font-body-md text-body-md">Locations</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline hover:text-primary dark:hover:text-inverse-primary hover:bg-surface-container dark:hover:bg-surface-container-high transition-colors transition-all duration-200 ease-in-out" href="#">
+<span class="material-symbols-outlined">electric_bolt</span>
+<span class="font-body-md text-body-md">Utility Readings</span>
+</a>
+</nav>
+<div class="px-4 mt-auto space-y-2">
+<button class="w-full bg-primary text-on-primary py-3 rounded-lg font-bold mb-6 hover:opacity-90 transition-opacity">
+                Generate Report
+            </button>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant dark:text-outline hover:text-primary transition-colors" href="#">
+<span class="material-symbols-outlined">help_outline</span>
+<span class="font-body-md text-body-md">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<div class="ml-64 flex flex-col min-h-screen">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center h-16 px-container-margin sticky top-0 z-40 bg-surface-bright dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm">
+<div class="flex items-center gap-6">
+<h2 class="font-headline-md text-headline-md font-bold text-primary">Equinox Dashboard</h2>
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="bg-surface-container-low border-none rounded-full pl-10 pr-4 py-1.5 w-64 focus:ring-2 focus:ring-secondary transition-all text-body-md font-body-md" placeholder="Search facilities..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:text-primary transition-colors cursor-pointer">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<div class="flex items-center gap-3 ml-2 pl-4 border-l border-outline-variant">
+<div class="text-right">
+<p class="font-body-md text-body-md font-bold leading-none">Alex Rivera</p>
+<p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Admin</p>
+</div>
+<img alt="Administrator Profile" class="w-10 h-10 rounded-full border-2 border-surface-container-highest object-cover" data-alt="A professional headshot of a facility manager in a modern corporate setting. The person is smiling warmly, wearing a professional navy blue suit. The lighting is bright and natural, reflecting a clean and modern office environment with soft focus architectural details in the background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8Vs8Vye8oxCu_xC6AFo6iN3iEGDPid9O48gr5kgsnV1pEPy5wV-fT2fZYYCwBkA7Ow3V7-GeCNEsuelGHcLPt8Qh-sH9rvf_F86erNead5YWIT1LWvJodgovTx-WZYePFBbxywDHp88yAEXVmDVOu3UUZaNsZfYmw7MMtozlXmqJqYoXSOa07V_nHLxLLfSlpSORPnIOLzmtB8LMxvDqQWFuV4_zI-zOao7kLV8wulgpnnao8eM0ZWXn95Dp3_T1YOW_5IWl43ZA"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<main class="p-container-margin flex-1">
+<!-- Overview KPI Stats -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter mb-stack-lg">
+<!-- KPI 1 -->
+<div class="bg-white rounded-xl shadow-[0_4px_12px_rgba(26,43,60,0.05)] p-card-padding border border-surface-container transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start mb-2">
+<span class="text-on-surface-variant font-label-md text-label-md uppercase tracking-widest">Active Tenants</span>
+<div class="p-2 bg-primary-fixed rounded-lg text-primary">
+<span class="material-symbols-outlined">groups</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-primary">124</span>
+<span class="text-secondary font-bold text-body-md">+12%</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 75%"></div>
+</div>
+</div>
+<!-- KPI 2 -->
+<div class="bg-white rounded-xl shadow-[0_4px_12px_rgba(26,43,60,0.05)] p-card-padding border border-surface-container transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start mb-2">
+<span class="text-on-surface-variant font-label-md text-label-md uppercase tracking-widest">Occupancy Rate</span>
+<div class="p-2 bg-secondary-container rounded-lg text-secondary">
+<span class="material-symbols-outlined">home_work</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-primary">92%</span>
+<span class="text-on-surface-variant font-body-md text-body-md">vs 88% target</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-secondary h-full" style="width: 92%"></div>
+</div>
+</div>
+<!-- KPI 3 -->
+<div class="bg-white rounded-xl shadow-[0_4px_12px_rgba(26,43,60,0.05)] p-card-padding border border-surface-container transition-transform hover:scale-[1.01]">
+<div class="flex justify-between items-start mb-2">
+<span class="text-on-surface-variant font-label-md text-label-md uppercase tracking-widest">Monthly Utilities</span>
+<div class="p-2 bg-tertiary-fixed rounded-lg text-tertiary">
+<span class="material-symbols-outlined">payments</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-primary">$12,450</span>
+<span class="text-error font-bold text-body-md">-2.4%</span>
+</div>
+<div class="w-full bg-surface-container-low h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-tertiary h-full" style="width: 65%"></div>
+</div>
+</div>
+</div>
+<!-- Bento Grid Main Content -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Recent Utility Readings (Asymmetric Layout) -->
+<div class="col-span-12 lg:col-span-8 bg-white rounded-xl shadow-[0_4px_12px_rgba(26,43,60,0.05)] p-card-padding border border-surface-container">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-primary">Recent Utility Readings</h3>
+<div class="flex gap-2">
+<button class="px-4 py-1.5 text-label-md font-label-md bg-surface-container rounded-full text-on-surface-variant hover:text-primary transition-colors">Electric</button>
+<button class="px-4 py-1.5 text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors">Water</button>
+<button class="px-4 py-1.5 text-label-md font-label-md text-on-surface-variant hover:text-primary transition-colors">Gas</button>
+</div>
+</div>
+<!-- Visualization Placeholder -->
+<div class="h-64 w-full mb-8 relative rounded-lg overflow-hidden bg-surface-container-low">
+
+<div class="absolute inset-0 flex items-end px-8 pb-4">
+<!-- Simplified Bar Chart Simulation -->
+<div class="flex items-end justify-between w-full h-40 gap-4">
+<div class="w-full bg-primary-fixed-dim rounded-t-lg transition-all hover:bg-primary" style="height: 45%;"></div>
+<div class="w-full bg-primary-fixed-dim rounded-t-lg transition-all hover:bg-primary" style="height: 60%;"></div>
+<div class="w-full bg-primary-fixed-dim rounded-t-lg transition-all hover:bg-primary" style="height: 55%;"></div>
+<div class="w-full bg-primary-fixed-dim rounded-t-lg transition-all hover:bg-primary" style="height: 80%;"></div>
+<div class="w-full bg-primary-fixed-dim rounded-t-lg transition-all hover:bg-primary" style="height: 70%;"></div>
+<div class="w-full bg-primary-fixed-dim rounded-t-lg transition-all hover:bg-primary" style="height: 90%;"></div>
+<div class="w-full bg-primary rounded-t-lg shadow-lg" style="height: 85%;"></div>
+</div>
+</div>
+</div>
+<!-- Reading Data Table -->
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead>
+<tr class="text-on-surface-variant border-b border-surface-container">
+<th class="py-3 font-label-md text-label-md uppercase tracking-wider">Property</th>
+<th class="py-3 font-label-md text-label-md uppercase tracking-wider">Tenant</th>
+<th class="py-3 font-label-md text-label-md uppercase tracking-wider">Reading</th>
+<th class="py-3 font-label-md text-label-md uppercase tracking-wider">Status</th>
+<th class="py-3 font-label-md text-label-md uppercase tracking-wider">Date</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-surface-container">
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-4 font-body-md text-body-md text-primary font-bold">Azure Plaza</td>
+<td class="py-4 font-body-md text-body-md text-on-surface-variant">TechNexus Inc.</td>
+<td class="py-4 font-body-md text-body-md text-primary">1,240 kWh</td>
+<td class="py-4">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase tracking-tighter">Approved</span>
+</td>
+<td class="py-4 font-body-md text-body-md text-outline">Oct 12, 2023</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-4 font-body-md text-body-md text-primary font-bold">Harbor Heights</td>
+<td class="py-4 font-body-md text-body-md text-on-surface-variant">Apex Logistics</td>
+<td class="py-4 font-body-md text-body-md text-primary">850 kWh</td>
+<td class="py-4">
+<span class="px-3 py-1 bg-surface-container-highest text-on-surface-variant text-[10px] font-bold rounded-full uppercase tracking-tighter">Pending</span>
+</td>
+<td class="py-4 font-body-md text-body-md text-outline">Oct 11, 2023</td>
+</tr>
+<tr class="hover:bg-surface-container-low transition-colors group">
+<td class="py-4 font-body-md text-body-md text-primary font-bold">North Tower</td>
+<td class="py-4 font-body-md text-body-md text-on-surface-variant">Global Sourcing</td>
+<td class="py-4 font-body-md text-body-md text-primary">2,100 kWh</td>
+<td class="py-4">
+<span class="px-3 py-1 bg-secondary-container text-on-secondary-container text-[10px] font-bold rounded-full uppercase tracking-tighter">Approved</span>
+</td>
+<td class="py-4 font-body-md text-body-md text-outline">Oct 10, 2023</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- Upcoming Lease Renewals (Right Sidebar Bento) -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-gutter">
+<!-- Renewals Summary Card -->
+<div class="bg-white rounded-xl shadow-[0_4px_12px_rgba(26,43,60,0.05)] p-card-padding border border-surface-container flex-1">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-sm text-headline-sm text-primary">Upcoming Renewals</h3>
+<span class="text-body-md font-bold text-secondary">View All</span>
+</div>
+<div class="space-y-4">
+<!-- Renewal Item 1 -->
+<div class="flex items-center gap-4 p-4 rounded-lg bg-surface-container-low border border-transparent hover:border-outline-variant transition-all cursor-pointer">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Close-up of a modern glass office building facade reflecting a bright blue sky. The architecture is sleek and minimalist with clean vertical lines and metallic accents. The lighting is crisp and airy, suggesting high-end commercial real estate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsDJe8dJAd2q99i-vuzwJ9XNQC8jyOyGUKjH7rRE_Cg4j-XzAq4hy6swnSdzEu38You_VwTtQvdl0NulVk4AaA1qhlUpyzEa_PEtq4hzWIY1sOftICoKw8SlACHo0howjIdsiapdlCQG5RoiJ0m46Im6H011AogZSkzX_z3nT8QFNHG2rt7InGSo461rb1FpMXiC4HMsEv5roqhdw30EYXEcSawHYYCiCjrsES4YyxPfdzxpsTDB7Wu3tgLtYgUV-WPJWgi5jyxWY"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-bold text-primary">Creative Collective</p>
+<p class="text-[12px] text-on-surface-variant">Unit 402 • Expires in 14 days</p>
+</div>
+<div class="text-right">
+<p class="text-body-md font-bold text-primary">$4,200</p>
+<span class="text-[10px] font-bold text-error uppercase">Urgent</span>
+</div>
+</div>
+<!-- Renewal Item 2 -->
+<div class="flex items-center gap-4 p-4 rounded-lg hover:bg-surface-container-low transition-all cursor-pointer">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="A brightly lit, contemporary coworking space with natural wood tables, ergonomic chairs, and large windows. The interior design is warm but professional, featuring pops of teal and navy blue. The atmosphere is quiet and focused, representing a high-value lease property." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBw23RjaPZX206ThTgYpTuLaFc5lZ96joOZfWgwheLDuzgO0KWSCU400h6kukiH7CtZOLPthGWhA9nQRr3upEvbvlwsl1LXw_7DQH0vWQSnLZb2jMettsayy1T067Cm25d9cjsaqLJmU4yUSg8E0aDGaNUllSnRUZp33o1JreWT8Mt-EmFMZau8Cxgudkb1WnQ0eW0CcypcXETBRo2hWmQ_s4FDqfEPqXDpf078BrQx616gW67KWZczHT8ZyftW0kRxKXU3bdQyNGU"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-bold text-primary">Silverline Media</p>
+<p class="text-[12px] text-on-surface-variant">Unit 115 • Expires in 45 days</p>
+</div>
+<div class="text-right">
+<p class="text-body-md font-bold text-primary">$2,850</p>
+<span class="text-[10px] font-bold text-secondary uppercase">Drafting</span>
+</div>
+</div>
+<!-- Renewal Item 3 -->
+<div class="flex items-center gap-4 p-4 rounded-lg hover:bg-surface-container-low transition-all cursor-pointer">
+<div class="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
+<img class="w-full h-full object-cover" data-alt="Exterior shot of a minimalist corporate headquarters entrance. The building uses large limestone blocks and heavy glass doors. The branding is subtle and etched into the stone. The lighting is soft evening glow, highlighting the premium, authoritative nature of the facility." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD1qfsth2sG7-AIJj2RuqaOOVJTfPL5kj4vd9XLWScPOzMFSysXrZxya34Z2z2oZo0YEnQkQURmdv4qHVBirRNtVgUjcUXZe9dx8wHg6TNkjJGMeWfg3xgWAwxxhx_h16QGyCCSsDXGINnoQT-J_ZdKIhFWfo9ed_Xj3nwYOqcBRtKP_hQV8ynyYjxVuNy6UW0Pogv5Q_uGzyR9ntQ3jbf5uPkY-c7OiZ6ts-Wlnn2OkvHcCKsF8qsp_4CHxt6J95KnRmeQKmBL-Q4"/>
+</div>
+<div class="flex-1">
+<p class="font-body-md text-body-md font-bold text-primary">Foundation Law</p>
+<p class="text-[12px] text-on-surface-variant">Penthouse B • Expires in 62 days</p>
+</div>
+<div class="text-right">
+<p class="text-body-md font-bold text-primary">$12,000</p>
+<span class="text-[10px] font-bold text-on-surface-variant uppercase">Normal</span>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-3 text-body-md font-bold text-primary border-2 border-primary rounded-lg hover:bg-primary hover:text-on-primary transition-all">
+                            Review All Lease Terms
+                        </button>
+</div>
+<!-- Small Stat Highlight Card -->
+<div class="bg-primary-container text-on-primary-container rounded-xl p-card-padding relative overflow-hidden shadow-lg">
+<div class="relative z-10">
+<h4 class="font-headline-sm text-headline-sm mb-2">Facility Optimization</h4>
+<p class="text-on-primary-container opacity-80 font-body-md text-body-md mb-4">Energy efficiency is up 14% this quarter across all locations.</p>
+<button class="bg-secondary px-6 py-2 rounded-full font-bold text-white text-body-md hover:scale-105 transition-transform">
+                                Explore Insights
+                            </button>
+</div>
+<!-- Abstract background element -->
+<div class="absolute -right-10 -bottom-10 w-40 h-40 bg-secondary opacity-20 rounded-full blur-3xl"></div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<!-- Micro-interactions Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hover effect for table rows
+            const rows = document.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', () => {
+                    row.style.transform = 'translateX(4px)';
+                });
+                row.addEventListener('mouseleave', () => {
+                    row.style.transform = 'translateX(0)';
+                });
+            });
+
+            // Card entrance animations
+            const cards = document.querySelectorAll('.bg-white, .bg-primary-container');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease-out';
+                setTimeout(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, 100 * index);
+            });
+        });
+    </script>
+</body></html>

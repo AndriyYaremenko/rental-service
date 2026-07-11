@@ -1,1 +1,92 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Кольори (з design/dashboard.html tailwind.config.colors) */
+  --color-primary: #041627;
+  --color-primary-container: #1a2b3c;
+  --color-on-primary: #ffffff;
+  --color-on-primary-container: #8192a7;
+  --color-secondary: #006a6a;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #96efee;
+  --color-on-secondary-container: #006e6e;
+  --color-tertiary: #0f161b;
+  --color-tertiary-fixed: #dde3eb;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+  --color-surface: #f8f9ff;
+  --color-surface-bright: #f8f9ff;
+  --color-surface-dim: #cbdbf5;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #eff4ff;
+  --color-surface-container: #e5eeff;
+  --color-surface-container-high: #dce9ff;
+  --color-surface-container-highest: #d3e4fe;
+  --color-surface-variant: #d3e4fe;
+  --color-on-surface: #0b1c30;
+  --color-on-surface-variant: #44474c;
+  --color-background: #f8f9ff;
+  --color-on-background: #0b1c30;
+  --color-outline: #74777d;
+  --color-outline-variant: #c4c6cd;
+  --color-primary-fixed: #d2e4fb;
+  --color-primary-fixed-dim: #b7c8de;
+  --color-inverse-primary: #b7c8de;
+  --color-inverse-surface: #213145;
+  --color-inverse-on-surface: #eaf1ff;
+
+  /* Радіуси */
+  --radius: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+
+  /* Spacing (додаткові семантичні кроки) */
+  --spacing-unit: 8px;
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 32px;
+  --spacing-gutter: 24px;
+  --spacing-card-padding: 24px;
+  --spacing-container-margin: 32px;
+
+  /* Типографіка */
+  --font-sans: var(--font-inter), sans-serif;
+  --text-display-lg: 32px;
+  --text-display-lg--line-height: 40px;
+  --text-display-lg--font-weight: 700;
+  --text-display-lg--letter-spacing: -0.02em;
+  --text-headline-md: 24px;
+  --text-headline-md--line-height: 32px;
+  --text-headline-md--font-weight: 600;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-sm: 20px;
+  --text-headline-sm--line-height: 28px;
+  --text-headline-sm--font-weight: 600;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--font-weight: 600;
+  --text-label-md--letter-spacing: 0.05em;
+}
+
+/* Material Symbols базовий клас */
+.material-symbols-outlined {
+  font-family: var(--font-symbols);
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}

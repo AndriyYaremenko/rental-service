@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Equinox Management - Locations &amp; Premises</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#e5eeff",
+                        "tertiary-fixed": "#dde3eb",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-background": "#0b1c30",
+                        "primary-fixed-dim": "#b7c8de",
+                        "inverse-surface": "#213145",
+                        "tertiary-container": "#242a30",
+                        "outline": "#74777d",
+                        "error-container": "#ffdad6",
+                        "primary-container": "#1a2b3c",
+                        "on-secondary-fixed-variant": "#004f50",
+                        "secondary-container": "#96efee",
+                        "surface-dim": "#cbdbf5",
+                        "primary": "#041627",
+                        "inverse-primary": "#b7c8de",
+                        "on-tertiary-fixed": "#161c22",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-container": "#8b9198",
+                        "secondary": "#006a6a",
+                        "surface-variant": "#d3e4fe",
+                        "primary-fixed": "#d2e4fb",
+                        "surface-container-low": "#eff4ff",
+                        "tertiary": "#0f161b",
+                        "error": "#ba1a1a",
+                        "on-surface-variant": "#44474c",
+                        "background": "#f8f9ff",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#c1c7cf",
+                        "outline-variant": "#c4c6cd",
+                        "on-primary-fixed": "#0b1d2d",
+                        "surface-container-highest": "#d3e4fe",
+                        "surface-container-high": "#dce9ff",
+                        "on-surface": "#0b1c30",
+                        "on-secondary-container": "#006e6e",
+                        "on-primary-container": "#8192a7",
+                        "inverse-on-surface": "#eaf1ff",
+                        "on-primary": "#ffffff",
+                        "surface": "#f8f9ff",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#002020",
+                        "on-tertiary-fixed-variant": "#41474e",
+                        "surface-tint": "#4f6073",
+                        "on-primary-fixed-variant": "#38485a",
+                        "secondary-fixed-dim": "#7dd5d4",
+                        "surface-bright": "#f8f9ff",
+                        "secondary-fixed": "#99f1f1"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-margin": "32px",
+                        "stack-md": "16px",
+                        "stack-sm": "8px",
+                        "unit": "8px",
+                        "stack-lg": "32px",
+                        "gutter": "24px",
+                        "card-padding": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "display-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f8f9ff; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; vertical-align: middle; }
+        .property-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(26, 43, 60, 0.08); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #d3e4fe; border-radius: 10px; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar Anchor -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-surface dark:bg-surface-container-lowest flex flex-col py-stack-lg z-50">
+<div class="px-6 mb-stack-lg">
+<h1 class="font-headline-sm text-headline-sm font-bold text-primary">Equinox Management</h1>
+<p class="text-body-md text-on-surface-variant opacity-70">Facility Operations</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-6 py-3 text-on-surface-variant hover:bg-surface-container transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span> Dashboard
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant hover:bg-surface-container transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined mr-3">groups</span> Tenants
+            </a>
+<a class="flex items-center px-6 py-3 text-secondary font-bold border-r-4 border-secondary bg-surface-container-low font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined mr-3">domain</span> Locations
+            </a>
+<a class="flex items-center px-6 py-3 text-on-surface-variant hover:bg-surface-container transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined mr-3">electric_bolt</span> Utility Readings
+            </a>
+</nav>
+<div class="px-6 mt-auto space-y-1">
+<button class="w-full bg-primary text-on-primary py-3 px-4 rounded-lg font-label-md mb-6 hover:opacity-90 transition-opacity">
+                Generate Report
+            </button>
+<a class="flex items-center py-2 text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined mr-3">settings</span> Settings
+            </a>
+<a class="flex items-center py-2 text-on-surface-variant hover:text-primary transition-colors font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined mr-3">help_outline</span> Support
+            </a>
+</div>
+</aside>
+<!-- TopNavBar Anchor -->
+<header class="flex justify-between items-center h-16 px-container-margin ml-64 sticky top-0 bg-surface-bright border-b border-outline-variant shadow-sm z-40">
+<div class="flex items-center space-x-stack-lg">
+<h2 class="font-headline-md text-headline-md font-bold text-primary">Equinox Dashboard</h2>
+<div class="relative w-96">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border-none rounded-lg focus:ring-2 focus:ring-secondary text-body-md" placeholder="Search properties or premises..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-6">
+<div class="flex space-x-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">notifications</span>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary">settings</span>
+</div>
+<div class="flex items-center space-x-3 border-l border-outline-variant pl-6">
+<div class="text-right">
+<p class="text-body-md font-bold leading-tight">Admin User</p>
+<p class="text-label-md text-on-surface-variant">Regional Manager</p>
+</div>
+<img class="w-10 h-10 rounded-full border-2 border-surface-container" data-alt="A professional headshot of a senior facility administrator in a clean-cut corporate portrait. The lighting is soft and professional with a neutral, bright grey background. The subject is wearing a navy blue suit and maintains a friendly yet authoritative expression, fitting the minimalist corporate design system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0Ef-N315k-LsqdsyRnHh8yop98BXilLe-8E-TPmL0vRuz0011D__tB2fJKYScligth13yNU3jXE8fSje8299mJfi2vL4gbnDd1W93hL8z5N2Pg_wK_WUthLGJ_Rta32rcXh3GS9vYFsSi9A87P7ZQrtpGQKSEaBt4seBYD1G1XBFo79n6YrhwVug0yzY8zl6hmjDqE3I9IKTfgQIo6BulAGI7Sjo-4x23pj0SAJReswrmcMMOkpeKMIX-cBfybjPORUC9kgzyqGg"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 p-container-margin">
+<!-- Header & Filter Section -->
+<div class="flex justify-between items-end mb-stack-lg">
+<div>
+<nav class="flex text-label-md text-on-surface-variant mb-2 space-x-2">
+<a class="hover:text-primary" href="#">Dashboard</a>
+<span>/</span>
+<span class="text-primary font-bold">Locations</span>
+</nav>
+<h1 class="font-display-lg text-display-lg text-on-background">Commercial Properties</h1>
+</div>
+<div class="flex space-x-stack-sm">
+<button class="flex items-center px-4 py-2 bg-white border border-outline-variant rounded-lg text-body-md hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined mr-2">filter_list</span> Filter
+                </button>
+<button class="flex items-center px-4 py-2 bg-primary text-white rounded-lg text-body-md hover:opacity-90 shadow-md">
+<span class="material-symbols-outlined mr-2">add</span> Add Property
+                </button>
+</div>
+</div>
+<!-- Bento Grid: Property Overview -->
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-gutter mb-12">
+<!-- Property Card 1 -->
+<div class="property-card group bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 border border-outline-variant/30 flex flex-col cursor-pointer" onclick="togglePremises('plaza-east')">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="High-angle cinematic shot of a modern glass skyscraper titled Equinox Plaza East. The architecture is sharp and minimalist, reflecting a bright blue sky. The scene is bright and airy with high-key lighting, emphasizing luxury and corporate efficiency. Captured in a professional architectural photography style with cool blue and neutral grey tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDePOuflkmDK1pUbhcRStqRfDs42ca2GT5-xQeLHMdux_QteXygLMywSLFibuLNDyWzdTH30aia2LsPJLrUoBG_Skc7wcKxESoHxxrAl6ZFs9HniPFTpVhM4U6EF41V94g3mqoLL_maH7sDZQKw0I91zLpdaIly0N4NZxfFyboXddR_zTIRQ3RYEpIRWdgkp0ANGskdJa5DrRhFH7Evrklr0zZ48_eLzRbLxns1EHhbjtlUajm5u-Ni3tYe6mhQFvwsGL2sIDruK70"/>
+<div class="absolute top-4 right-4 px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-label-md font-bold">
+                        92% Occupied
+                    </div>
+</div>
+<div class="p-card-padding flex-1">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-sm text-headline-sm mb-1">Equinox Plaza East</h3>
+<p class="text-body-md text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-sm mr-1">location_on</span> Canary Wharf, London
+                            </p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-outline-variant/30">
+<div>
+<p class="text-label-md text-on-surface-variant uppercase">Total Units</p>
+<p class="text-headline-md font-bold">124</p>
+</div>
+<div>
+<p class="text-label-md text-on-surface-variant uppercase">Available</p>
+<p class="text-headline-md font-bold text-secondary">8</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Property Card 2 -->
+<div class="property-card group bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 border border-outline-variant/30 flex flex-col cursor-pointer" onclick="togglePremises('tech-hub')">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A sustainable modern campus with wooden facade elements and lush green roof terraces. This is the Silicon Grove Tech Hub, featuring wide glass windows and open workspaces. The lighting is warm and natural, suggesting a creative and productive environment. The color palette is earth-toned with vibrant green accents, maintaining a high-end corporate minimalist feel." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLUbcJTtqf0RwhsGzXb8hMRHdXPBf0FjPzaVX_ug7CMhy7lpI_6UYgHfQmpbDiIkEbD2kLOkIKxZ37zvnMjVplamSE4D-VvfI6qRilDqE3ndMRw3lwJ3GOw-3uIL_lcSdRTUYDCKCWWdGlYbw3hm49RYJ3VaikZF214ffQ0KdQ_V4Vsl5KR3GF7JjiUoiqbNs26k06KlmdlTzl1tdXkqbrdu7Lri2OvNeHUYdgs-cgT0-7xfZFUkV50tD_eAqJdvuPkHwYI8zqTko"/>
+<div class="absolute top-4 right-4 px-3 py-1 bg-surface-container-highest text-on-surface-variant rounded-full text-label-md font-bold">
+                        64% Occupied
+                    </div>
+</div>
+<div class="p-card-padding flex-1">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-sm text-headline-sm mb-1">Silicon Grove Tech Hub</h3>
+<p class="text-body-md text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-sm mr-1">location_on</span> Shoreditch, London
+                            </p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-outline-variant/30">
+<div>
+<p class="text-label-md text-on-surface-variant uppercase">Total Units</p>
+<p class="text-headline-md font-bold">58</p>
+</div>
+<div>
+<p class="text-label-md text-on-surface-variant uppercase">Available</p>
+<p class="text-headline-md font-bold text-secondary">21</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Property Card 3 -->
+<div class="property-card group bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 border border-outline-variant/30 flex flex-col cursor-pointer">
+<div class="h-48 overflow-hidden relative">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A historic converted warehouse with industrial-chic large windows and exposed brickwork, now a luxury office space. The lighting is moody but bright, with professional interior photography techniques showcasing a blend of old and new. Dark teal and charcoal grey accents complement the red brick tones, aligned with a sophisticated minimalist SaaS aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEOxtutOk5z32fhR6yIMmHSKuETpdZSszJpO6ru-GMBRf4CBBNSiLwXL1Ds288o6u9U8HETBDysulgXp2QN-3AHTyjs157iHKeasQ26UTyM0SUUGpe2UazKbLNUdWQ_FvMWHtL2Xn311k1b_2EFpEGD4zpsltxyisQ_OlJ4t64zBJPlYNYq7AsZANcJg829oY5TJmluwjZugSA2a2xUBI0rB17K-E4LkocTgRW6rJwbQ0eRgGqL08MG4OFI_UNwaRIIW4K20K7vzA"/>
+<div class="absolute top-4 right-4 px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-label-md font-bold">
+                        100% Occupied
+                    </div>
+</div>
+<div class="p-card-padding flex-1">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-sm text-headline-sm mb-1">Old Foundry Studios</h3>
+<p class="text-body-md text-on-surface-variant flex items-center">
+<span class="material-symbols-outlined text-sm mr-1">location_on</span> Soho, London
+                            </p>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-4 border-t border-outline-variant/30">
+<div>
+<p class="text-label-md text-on-surface-variant uppercase">Total Units</p>
+<p class="text-headline-md font-bold">32</p>
+</div>
+<div>
+<p class="text-label-md text-on-surface-variant uppercase">Available</p>
+<p class="text-headline-md font-bold text-outline">0</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Drill-down: Premises Management (Initially Hidden or showing context) -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant/30 overflow-hidden" id="premises-section">
+<div class="p-card-padding border-b border-outline-variant/30 flex justify-between items-center bg-surface-bright">
+<div>
+<h2 class="font-headline-md text-headline-md text-primary">Premises List: <span id="current-location">Equinox Plaza East</span></h2>
+<p class="text-body-md text-on-surface-variant">Detailed view of individual units and current status</p>
+</div>
+<div class="flex space-x-stack-sm">
+<div class="flex items-center space-x-4 text-label-md mr-4">
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-secondary mr-2"></span> Available</span>
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-primary-container mr-2"></span> Occupied</span>
+<span class="flex items-center"><span class="w-2 h-2 rounded-full bg-error mr-2"></span> Maintenance</span>
+</div>
+<button class="p-2 hover:bg-surface-container rounded-lg"><span class="material-symbols-outlined">more_vert</span></button>
+</div>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low">
+<th class="px-6 py-4 font-label-md text-on-surface-variant uppercase tracking-wider">Unit #</th>
+<th class="px-6 py-4 font-label-md text-on-surface-variant uppercase tracking-wider">Premises Type</th>
+<th class="px-6 py-4 font-label-md text-on-surface-variant uppercase tracking-wider">Floor</th>
+<th class="px-6 py-4 font-label-md text-on-surface-variant uppercase tracking-wider">Area (sq ft)</th>
+<th class="px-6 py-4 font-label-md text-on-surface-variant uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 font-label-md text-on-surface-variant uppercase tracking-wider text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant/20">
+<!-- Unit Row -->
+<tr class="hover:bg-surface-container/50 transition-colors cursor-pointer group">
+<td class="px-6 py-4 font-body-md font-bold">Suite 401</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Corporate Office</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">4th Floor</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">4,200</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-label-md font-bold bg-secondary/10 text-secondary border border-secondary/20">
+                                    Available
+                                </span>
+</td>
+<td class="px-6 py-4 text-right">
+<button class="text-primary hover:underline font-label-md">Edit Details</button>
+</td>
+</tr>
+<!-- Unit Row -->
+<tr class="hover:bg-surface-container/50 transition-colors cursor-pointer group">
+<td class="px-6 py-4 font-body-md font-bold">Suite 402</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Startup Studio</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">4th Floor</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">1,850</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-label-md font-bold bg-primary-container/10 text-primary-container border border-primary-container/20">
+                                    Occupied
+                                </span>
+</td>
+<td class="px-6 py-4 text-right text-on-surface-variant">
+<button class="text-primary hover:underline font-label-md">View Lease</button>
+</td>
+</tr>
+<!-- Unit Row -->
+<tr class="hover:bg-surface-container/50 transition-colors cursor-pointer group">
+<td class="px-6 py-4 font-body-md font-bold">Suite 505</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Conference Hall</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">5th Floor</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">8,400</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-label-md font-bold bg-error/10 text-error border border-error/20">
+                                    Maintenance
+                                </span>
+</td>
+<td class="px-6 py-4 text-right text-on-surface-variant">
+<button class="text-primary hover:underline font-label-md">Work Order</button>
+</td>
+</tr>
+<!-- Unit Row -->
+<tr class="hover:bg-surface-container/50 transition-colors cursor-pointer group">
+<td class="px-6 py-4 font-body-md font-bold">Suite 101-A</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Retail Space</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Ground Floor</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">2,100</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-label-md font-bold bg-secondary/10 text-secondary border border-secondary/20">
+                                    Available
+                                </span>
+</td>
+<td class="px-6 py-4 text-right text-on-surface-variant">
+<button class="text-primary hover:underline font-label-md">Edit Details</button>
+</td>
+</tr>
+<!-- Unit Row -->
+<tr class="hover:bg-surface-container/50 transition-colors cursor-pointer group">
+<td class="px-6 py-4 font-body-md font-bold">Penthouse L</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Executive Suite</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">Top Floor</td>
+<td class="px-6 py-4 font-body-md text-on-surface-variant">12,000</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-3 py-1 rounded-full text-label-md font-bold bg-primary-container/10 text-primary-container border border-primary-container/20">
+                                    Occupied
+                                </span>
+</td>
+<td class="px-6 py-4 text-right text-on-surface-variant">
+<button class="text-primary hover:underline font-label-md">View Lease</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="p-6 border-t border-outline-variant/30 bg-surface-container-low/30 flex justify-between items-center">
+<p class="text-label-md text-on-surface-variant">Showing 5 of 124 units</p>
+<div class="flex space-x-2">
+<button class="px-3 py-1 border border-outline-variant rounded bg-white text-label-md disabled:opacity-50" disabled="">Previous</button>
+<button class="px-3 py-1 border border-outline-variant rounded bg-white text-label-md">Next</button>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB Anchor (Contextual for Home/Locations) -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-secondary text-on-secondary rounded-full shadow-2xl flex items-center justify-center hover:scale-110 transition-transform z-50">
+<span class="material-symbols-outlined text-3xl">add_business</span>
+</button>
+<script>
+        function togglePremises(locationId) {
+            const titleEl = document.getElementById('current-location');
+            const section = document.getElementById('premises-section');
+            
+            // Animation for transition
+            section.style.opacity = '0';
+            section.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                if (locationId === 'plaza-east') {
+                    titleEl.innerText = 'Equinox Plaza East';
+                } else if (locationId === 'tech-hub') {
+                    titleEl.innerText = 'Silicon Grove Tech Hub';
+                }
+                
+                section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                section.style.opacity = '1';
+                section.style.transform = 'translateY(0)';
+            }, 150);
+        }
+
+        // Initialize state
+        document.addEventListener('DOMContentLoaded', () => {
+            const section = document.getElementById('premises-section');
+            section.style.transition = 'all 0.4s ease-out';
+        });
+    </script>
+</body></html>
