@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { reportDebts } from '@/server/services/reports'
+import { reportDebts, reportMonthly } from '@/server/services/reports'
 import { prisma } from '@/server/db'
 
 let ids: Record<string, string> = {}
@@ -93,5 +93,34 @@ describe('reportDebts', () => {
     expect(smallIdx).toBeGreaterThanOrEqual(0)
     expect(bigIdx).toBeGreaterThanOrEqual(0)
     expect(bigIdx).toBeLessThan(smallIdx) // борг 200_000 передує боргу 50_000
+  })
+})
+
+describe('reportMonthly', () => {
+  it('рядки за місяць зі статусом і підсумком; повна оплата → PAID', async () => {
+    const leaseId = await leaseWith(100_000) // рахунок 2029-06
+    await prisma.payment.create({ data: { leaseId, date: new Date(), amountKop: 100_000, method: 'CASH' } })
+    const rep = await reportMonthly(2029, 6)
+    const row = rep.rows.find((r) => r.leaseId === leaseId)!
+    expect(row.totalKop).toBe(100_000)
+    expect(row.status).toBe('PAID')
+    expect(row.tenantName).toBe('Боржник Б')
+    expect(row.premisesLabel).toContain('Z1')
+    // ізоляція року 2029: у 2029-06 існує лише власний рахунок цього тесту, тож
+    // підсумок і кількість — ТОЧНІ (не >=); слабке >= пережив би мутант суми/лічильника
+    expect(rep.totalInvoicedKop).toBe(100_000)
+    expect(rep.count).toBe(1)
+  })
+
+  it('інший місяць не містить рахунку', async () => {
+    const leaseId = await leaseWith(100_000) // рахунок лише 2029-06
+    const rep = await reportMonthly(2029, 7)
+    expect(rep.rows.find((r) => r.leaseId === leaseId)).toBeUndefined()
+  })
+
+  it('форма елемента — фіксований набір ключів', async () => {
+    const leaseId = await leaseWith(100_000)
+    const row = (await reportMonthly(2029, 6)).rows.find((r) => r.leaseId === leaseId)!
+    expect(Object.keys(row).sort()).toEqual(['leaseId', 'premisesLabel', 'status', 'tenantName', 'totalKop'])
   })
 })
