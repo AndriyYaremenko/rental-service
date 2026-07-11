@@ -4,11 +4,20 @@ export class ClientApiError extends Error {
   }
 }
 
+function readCsrf(): string | undefined {
+  if (typeof document === 'undefined') return undefined
+  const m = document.cookie.match(/(?:^|;\s*)csrf=([^;]+)/)
+  return m ? decodeURIComponent(m[1]) : undefined
+}
+
 export async function apiFetch<T = unknown>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(path, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-  })
+  const method = (init?.method ?? 'GET').toUpperCase()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(init?.headers as Record<string, string> ?? {}) }
+  if (method !== 'GET' && method !== 'HEAD') {
+    const t = readCsrf()
+    if (t) headers['X-CSRF-Token'] = t
+  }
+  const res = await fetch(path, { ...init, headers })
   if (res.ok) {
     if (res.status === 204) return undefined as T
     return (await res.json()) as T

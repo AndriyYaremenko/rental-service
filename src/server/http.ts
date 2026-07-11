@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { ZodError, type ZodType } from 'zod'
+import { checkCsrf, CSRF_COOKIE, CSRF_HEADER } from '@/server/csrf'
+import { SESSION_COOKIE } from '@/server/auth/session'
 
 export type ApiErrorCode =
   | 'VALIDATION_FAILED'
@@ -10,6 +12,7 @@ export type ApiErrorCode =
   | 'LEASE_OVERLAP'
   | 'INVOICE_EXISTS'
   | 'READING_DECREASED'
+  | 'CSRF_FAILED'
 
 const STATUS: Record<ApiErrorCode, number> = {
   VALIDATION_FAILED: 400,
@@ -20,6 +23,7 @@ const STATUS: Record<ApiErrorCode, number> = {
   LEASE_OVERLAP: 409,
   INVOICE_EXISTS: 409,
   READING_DECREASED: 409,
+  CSRF_FAILED: 403,
 }
 
 export class ApiError extends Error {
@@ -85,6 +89,13 @@ type Handler<Ctx = unknown> = (req: import('next/server').NextRequest, ctx: Ctx)
 export function route<Ctx = unknown>(fn: Handler<Ctx>): Handler<Ctx> {
   return async (req, ctx) => {
     try {
+      const ok = checkCsrf(
+        req.method,
+        req.cookies.get(SESSION_COOKIE)?.value,
+        req.cookies.get(CSRF_COOKIE)?.value,
+        req.headers.get(CSRF_HEADER) ?? undefined,
+      )
+      if (!ok) throw new ApiError('CSRF_FAILED', 'CSRF-перевірка не пройдена')
       return await fn(req, ctx)
     } catch (e) {
       const { status, body } = toErrorResponse(e)
