@@ -54,6 +54,7 @@ describe('таблиця статусів — кожен код', () => {
     ['LEASE_OVERLAP', 409],
     ['INVOICE_EXISTS', 409],
     ['READING_DECREASED', 409],
+    ['CSRF_FAILED', 403],
   ]
   it.each(cases)('%s → %i', (code, status) => {
     expect(new ApiError(code, 'msg').status).toBe(status)
@@ -72,7 +73,9 @@ describe('zodFields — вкладений шлях', () => {
 })
 
 describe('route() і json()', () => {
-  const fakeReq = new Request('http://t/') as never
+  // NextRequest завжди має .cookies; у тесті додаємо мінімальний шим (GET →
+  // checkCsrf пропускає, тож cookies/header лишаються порожні).
+  const fakeReq = Object.assign(new Request('http://t/'), { cookies: { get: () => undefined } }) as never
   const noCtx = undefined as never
 
   it('json віддає заданий статус і тіло', async () => {
