@@ -8,7 +8,12 @@ describe('StatusChip мапінг', () => {
     expect(STATUS_LABEL.UNPAID).toBe('Не оплачено')
     expect(STATUS_LABEL.ACTIVE).toBe('Активний')
     expect(STATUS_LABEL.ENDED).toBe('Завершений')
-    // різні статуси → різні класи (не всі однакові)
-    expect(chipClass('PAID')).not.toBe(chipClass('UNPAID'))
+  })
+
+  it('тонові групи різні: оплачено/частково/несплачено/завершено не збігаються', () => {
+    // 4 різні тони; PAID і ACTIVE навмисно спільні (зелений, різні домени).
+    const groups = [chipClass('PAID'), chipClass('PARTIAL'), chipClass('UNPAID'), chipClass('ENDED')]
+    expect(new Set(groups).size).toBe(4) // жодна пара не колізує
+    expect(chipClass('ACTIVE')).toBe(chipClass('PAID')) // свідомо спільний зелений
   })
 })
