@@ -101,6 +101,26 @@ describe('payments service', () => {
     expect(upd.amountKop).toBe(25_025)
   })
 
+  it('оновлення лише method змінює метод і НЕ чіпає інші поля', async () => {
+    // Без цього мутант «method ніколи не оновлюється» (if false) виживав.
+    const leaseId = await lease()
+    const p = await createPayment({ leaseId, date: '2029-06-15', amountUah: '100', method: 'CASH', note: 'нота' })
+    const upd = await updatePayment(p.id, { method: 'CARD' })
+    expect(upd.method).toBe('CARD')
+    expect(upd.amountKop).toBe(10_000) // збережено
+    expect(upd.note).toBe('нота') // збережено
+    expect(upd.date).toContain('2029-06-15') // збережено
+  })
+
+  it('оновлення лише date змінює дату й НЕ чіпає суму/метод', async () => {
+    const leaseId = await lease()
+    const p = await createPayment({ leaseId, date: '2029-06-15', amountUah: '100', method: 'CASH' })
+    const upd = await updatePayment(p.id, { date: '2029-08-01' })
+    expect(upd.date).toContain('2029-08-01')
+    expect(upd.amountKop).toBe(10_000) // збережено
+    expect(upd.method).toBe('CASH') // збережено
+  })
+
   it('видаляє оплату', async () => {
     const leaseId = await lease()
     const p = await createPayment({ leaseId, date: '2029-06-15', amountUah: '100', method: 'CASH' })

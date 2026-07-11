@@ -163,4 +163,28 @@ describe('reportPremisesHistory', () => {
     expect(june.status).toBe('PAID')    // старіший гаситься першим
     expect(july.status).toBe('PARTIAL') // залишок 50k із 100k
   })
+
+  it('договори приміщення впорядковані найновішим першим (startDate desc)', async () => {
+    const newer = await leaseWith(100_000) // startDate 2029-01-01, prem = ids.prem
+    // старіший договір на ТОМУ САМОМУ приміщенні: завершився 2020 (ENDED відносно
+    // «сьогодні» 2026), не перетинається з 2029-договором.
+    const older = (await prisma.lease.create({ data: {
+      premisesId: ids.prem!, tenantId: ids.ten!,
+      startDate: new Date(Date.UTC(2020, 0, 1)), endDate: new Date(Date.UTC(2020, 11, 31)),
+      rentKop: 1, garbageKop: 0,
+    } })).id
+    const h = await reportPremisesHistory(ids.prem!)
+    expect(h.leases.map((l) => l.leaseId)).toEqual([newer, older]) // desc; мутант asc валить
+    const olderLease = h.leases.find((l) => l.leaseId === older)!
+    expect(olderLease.status).toBe('ENDED')
+    expect(olderLease.endDate).toContain('2020-12-31') // endDate non-null ISO
+  })
+
+  it('форма елемента історії — фіксований набір ключів (без витоку рядка БД)', async () => {
+    const leaseId = await leaseWith(100_000)
+    const h = await reportPremisesHistory(ids.prem!)
+    const lease = h.leases.find((l) => l.leaseId === leaseId)!
+    expect(Object.keys(lease).sort()).toEqual(['endDate', 'invoices', 'leaseId', 'startDate', 'status', 'tenantName'])
+    expect(Object.keys(lease.invoices[0]!).sort()).toEqual(['id', 'month', 'status', 'totalKop', 'year'])
+  })
 })
