@@ -1,6 +1,10 @@
 import { prisma } from '@/server/db'
+import { ApiError } from '@/server/http'
 import { advanceKop, debtKop } from '@/domain/debt'
 import { listInvoices } from '@/server/services/invoices'
+import { allocatePayments } from '@/domain/allocation'
+import { leaseState } from '@/domain/status'
+import type { InvoiceForAllocation, InvoiceStatus } from '@/domain/types'
 
 export interface DebtRow {
   leaseId: string
@@ -77,4 +81,69 @@ export async function reportMonthly(year: number, month: number): Promise<Monthl
     status: i.status,
   }))
   return { year, month, rows, totalInvoicedKop: rows.reduce((s, r) => s + r.totalKop, 0), count: rows.length }
+}
+
+export interface HistoryInvoice {
+  id: string
+  year: number
+  month: number
+  totalKop: number
+  status: InvoiceStatus
+}
+
+export interface HistoryLease {
+  leaseId: string
+  tenantName: string
+  startDate: string
+  endDate: string | null
+  status: 'ACTIVE' | 'ENDED'
+  invoices: HistoryInvoice[]
+}
+
+export interface PremisesHistory {
+  premisesId: string
+  premisesLabel: string
+  leases: HistoryLease[]
+}
+
+/** FIFO-статуси всіх рахунків одного договору (як у invoices-view, локально). */
+function statusesForLease(invoices: { id: string; year: number; month: number; createdAt: Date; totalKop: number }[], totalPaidKop: number): Map<string, InvoiceStatus> {
+  const forAlloc: InvoiceForAllocation[] = invoices.map((i) => ({ id: i.id, year: i.year, month: i.month, createdAt: i.createdAt, totalKop: i.totalKop }))
+  const { byInvoiceId } = allocatePayments(forAlloc, totalPaidKop)
+  const map = new Map<string, InvoiceStatus>()
+  for (const [id, entry] of byInvoiceId) map.set(id, entry.status)
+  return map
+}
+
+export async function reportPremisesHistory(premisesId: string): Promise<PremisesHistory> {
+  const premises = await prisma.premises.findUnique({
+    where: { id: premisesId },
+    select: { id: true, unitNumber: true, location: { select: { name: true } } },
+  })
+  if (!premises) throw new ApiError('NOT_FOUND', 'Приміщення не знайдено')
+
+  const leases = await prisma.lease.findMany({
+    where: { premisesId },
+    orderBy: { startDate: 'desc' },
+    include: {
+      tenant: { select: { name: true } },
+      invoices: { select: { id: true, year: true, month: true, createdAt: true, totalKop: true }, orderBy: [{ year: 'asc' }, { month: 'asc' }] },
+      payments: { select: { amountKop: true } },
+    },
+  })
+
+  const historyLeases: HistoryLease[] = leases.map((l) => {
+    const totalPaid = l.payments.reduce((s, p) => s + p.amountKop, 0)
+    const status = statusesForLease(l.invoices, totalPaid)
+    return {
+      leaseId: l.id,
+      tenantName: l.tenant.name,
+      startDate: l.startDate.toISOString(),
+      endDate: l.endDate ? l.endDate.toISOString() : null,
+      status: leaseState({ startDate: l.startDate, endDate: l.endDate }, new Date()),
+      invoices: l.invoices.map((i) => ({ id: i.id, year: i.year, month: i.month, totalKop: i.totalKop, status: status.get(i.id) ?? 'UNPAID' })),
+    }
+  })
+
+  return { premisesId: premises.id, premisesLabel: `${premises.location.name} · ${premises.unitNumber}`, leases: historyLeases }
 }

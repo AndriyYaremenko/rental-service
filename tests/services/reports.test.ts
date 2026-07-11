@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { reportDebts, reportMonthly } from '@/server/services/reports'
+import { reportDebts, reportMonthly, reportPremisesHistory } from '@/server/services/reports'
 import { prisma } from '@/server/db'
 
 let ids: Record<string, string> = {}
@@ -122,5 +122,45 @@ describe('reportMonthly', () => {
     const leaseId = await leaseWith(100_000)
     const row = (await reportMonthly(2029, 6)).rows.find((r) => r.leaseId === leaseId)!
     expect(Object.keys(row).sort()).toEqual(['leaseId', 'premisesLabel', 'status', 'tenantName', 'totalKop'])
+  })
+})
+
+describe('reportPremisesHistory', () => {
+  it('групує рахунки за договорами приміщення зі статусами', async () => {
+    const leaseId = await leaseWith(100_000) // рахунок 2029-06, prem = ids.prem
+    await prisma.payment.create({ data: { leaseId, date: new Date(), amountKop: 40_000, method: 'CASH' } })
+    const h = await reportPremisesHistory(ids.prem!)
+    expect(h.premisesLabel).toContain('Z1')
+    const lease = h.leases.find((x) => x.leaseId === leaseId)!
+    expect(lease.tenantName).toBe('Боржник Б')
+    expect(lease.status).toBe('ACTIVE')
+    const inv = lease.invoices.find((i) => i.year === 2029 && i.month === 6)!
+    expect(inv.totalKop).toBe(100_000)
+    expect(inv.status).toBe('PARTIAL') // 40k із 100k
+  })
+
+  it('приміщення без id → NOT_FOUND', async () => {
+    await expect(reportPremisesHistory('немає')).rejects.toMatchObject({ code: 'NOT_FOUND' })
+  })
+
+  it('FIFO між рахунками одного договору: старіший гаситься першим (червень PAID, липень PARTIAL)', async () => {
+    // leaseWith дає рахунок 2029-06 на 100k; додаємо ДРУГИЙ рахунок 2029-07 на 100k
+    // під тим самим договором, оплата 150k. Правильна FIFO-алокація закриває
+    // старіший (червень) повністю, залишок 50k робить липень PARTIAL. Якщо ж
+    // statusesForLease рознесе кожен рахунок ПРОТИ ПОВНОГО пулу окремо, липень
+    // теж стане PAID — цей тест ловить таку регресію (два рахунки, не один).
+    const leaseId = await leaseWith(100_000)
+    await prisma.invoice.create({ data: {
+      leaseId, year: 2029, month: 7, electricityRateKop: 0, waterRateKop: 0,
+      prevElectricity: '0', currElectricity: '0', electricityUsed: '0', prevWater: '0', currWater: '0', waterUsed: '0',
+      rentKop: 100_000, electricityKop: 0, waterKop: 0, garbageKop: 0, totalKop: 100_000,
+    } })
+    await prisma.payment.create({ data: { leaseId, date: new Date(), amountKop: 150_000, method: 'CASH' } })
+    const h = await reportPremisesHistory(ids.prem!)
+    const lease = h.leases.find((x) => x.leaseId === leaseId)!
+    const june = lease.invoices.find((i) => i.year === 2029 && i.month === 6)!
+    const july = lease.invoices.find((i) => i.year === 2029 && i.month === 7)!
+    expect(june.status).toBe('PAID')    // старіший гаситься першим
+    expect(july.status).toBe('PARTIAL') // залишок 50k із 100k
   })
 })
