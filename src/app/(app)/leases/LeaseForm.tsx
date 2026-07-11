@@ -44,11 +44,11 @@ export function LeaseForm({ lease, onClose }: { lease?: LeaseDTO; onClose: () =>
           <option value="" disabled>Оберіть орендаря</option>
           {(tenants.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
         </Select>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Початок" type="date" required value={f.startDate} onChange={set('startDate')} error={errs.startDate} />
           <Input label="Кінець (опц.)" type="date" value={f.endDate} onChange={set('endDate')} error={errs.endDate} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Оренда/міс, грн" required value={f.rentUah} onChange={set('rentUah')} error={errs.rent} placeholder="напр. 18000.00" />
           <Input label="Сміття/міс, грн" required value={f.garbageUah} onChange={set('garbageUah')} error={errs.rent} placeholder="напр. 300.00" />
         </div>

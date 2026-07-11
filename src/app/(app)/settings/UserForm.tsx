@@ -34,7 +34,7 @@ export function UserForm({ user, onClose }: { user?: UserDTO; onClose: () => voi
       <form onSubmit={submit} className="space-y-4">
         {!user && <Input label="Email" type="email" required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} error={errs.email} />}
         <Input label="Ім'я" required value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} error={errs.name} />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Select label="Роль" value={f.role} onChange={(e) => setF({ ...f, role: e.target.value as 'ADMIN' | 'USER' })} error={errs.role}>
             <option value="USER">USER</option>
             <option value="ADMIN">ADMIN</option>

@@ -41,11 +41,11 @@ export function PremisesForm({ premises, defaultLocationId, onClose }: { premise
           <option value="" disabled>Оберіть локацію</option>
           {(locations.data ?? []).map((l) => <option key={l.id} value={l.id}>{l.name}</option>)}
         </Select>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Номер / одиниця" required value={f.unitNumber} onChange={set('unitNumber')} error={errs.unitNumber} />
           <Input label="Тип (офіс, магазин…)" required value={f.type} onChange={set('type')} error={errs.type} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Поверх" type="number" value={f.floor} onChange={set('floor')} error={errs.floor} />
           <Input label="Площа, м²" required value={f.areaM2} onChange={set('areaM2')} error={errs.areaM2} placeholder="напр. 24.5" />
         </div>
