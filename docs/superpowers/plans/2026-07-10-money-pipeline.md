@@ -46,6 +46,13 @@
 - **TDD обовʼязковий** для service/domain. Не оновлювати TypeScript до 7, схему не чіпати.
 - **CSRF відкладено до Плану 3** (токен має відсилати клієнт). `SameSite=lax` уже
   блокує міжсайтові POST/PATCH/DELETE — базовий захист грошових мутацій до UI.
+- **Teardown НІКОЛИ не викликає `deleteMany` з можливо-`undefined` фільтром id.**
+  Тести б'ють по seed-`dev.db` (окремої тестової БД нема), а Prisma тлумачить
+  `{ where: { leaseId: undefined } }` як «без фільтра» → знесе ВСЮ таблицю.
+  Якщо якийсь тест у файлі не створює фікстур (напр. `getX('немає') → NOT_FOUND`),
+  гварди `if (ids.x) { … }` або фільтруй `{ in: [...].filter(Boolean) }`, або
+  прибирай за створеною сутністю (напр. за локацією). Стосується кожного
+  afterEach у цьому й наступних планах.
 
 ## Структура файлів
 
@@ -1193,12 +1200,17 @@ import { prisma } from '@/server/db'
 
 let ids: Record<string, string> = {}
 afterEach(async () => {
-  await prisma.payment.deleteMany({ where: { leaseId: ids.lease } })
-  await prisma.invoice.deleteMany({ where: { leaseId: ids.lease } })
-  await prisma.lease.deleteMany({ where: { id: ids.lease } })
-  await prisma.premises.deleteMany({ where: { id: ids.prem } })
-  await prisma.tenant.deleteMany({ where: { id: ids.ten } })
-  await prisma.location.deleteMany({ where: { name: 'Статус' } })
+  // ГВАРДІЯ: тест getInvoice('немає') не створює фікстур, тож ids порожній.
+  // deleteMany({ where: { leaseId: undefined } }) Prisma тлумачить як «без
+  // фільтра» → знесло б УСІ рядки в seed-БД (окремої тестової БД немає).
+  if (ids.lease) {
+    await prisma.payment.deleteMany({ where: { leaseId: ids.lease } })
+    await prisma.invoice.deleteMany({ where: { leaseId: ids.lease } })
+    await prisma.lease.deleteMany({ where: { id: ids.lease } })
+    await prisma.premises.deleteMany({ where: { id: ids.prem } })
+    await prisma.tenant.deleteMany({ where: { id: ids.ten } })
+    await prisma.location.deleteMany({ where: { name: 'Статус' } })
+  }
   ids = {}
 })
 
