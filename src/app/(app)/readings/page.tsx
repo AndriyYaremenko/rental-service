@@ -15,7 +15,9 @@ const now = new Date()
 export default function ReadingsPage() {
   const qc = useQueryClient()
   const { year, month, setYear, setMonth } = useMonth(now.getUTCFullYear(), now.getUTCMonth() + 1)
-  const rows = useQuery({ queryKey: ['readings', year, month], queryFn: () => apiFetch<Row[]>(`/api/readings?year=${year}&month=${month}`) })
+  // refetchOnWindowFocus вимкнено: інакше повернення на вкладку перетирало б
+  // незбережений чернетковий ввід показників (useEffect нижче перебудовує draft).
+  const rows = useQuery({ queryKey: ['readings', year, month], queryFn: () => apiFetch<Row[]>(`/api/readings?year=${year}&month=${month}`), refetchOnWindowFocus: false })
   const [draft, setDraft] = useState<Draft>({})
   useEffect(() => {
     const d: Draft = {}
@@ -41,10 +43,13 @@ export default function ReadingsPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['readings', year, month] }),
   })
   const upd = (id: string, k: 'electricity' | 'water' | 'electricityReplaced' | 'waterReplaced', v: string | boolean) => setDraft((d) => ({ ...d, [id]: { ...d[id], [k]: v } }))
+  // Кнопку «Зберегти» вмикаємо лише коли є хоч один повністю заповнений рядок
+  // (інакше POST entries:[] → 400 з generic-повідомленням).
+  const canSave = (rows.data ?? []).some((r) => draft[r.premisesId]?.electricity !== '' && draft[r.premisesId]?.water !== '')
 
   return (
     <>
-      <PageHeader title="Показники" action={<span className="inline-flex items-center gap-3"><MonthPicker year={year} month={month} setYear={setYear} setMonth={setMonth} /><Button variant="navy" onClick={() => save.mutate()} disabled={save.isPending}>{save.isPending ? 'Збереження…' : 'Зберегти показники'}</Button></span>} />
+      <PageHeader title="Показники" action={<span className="inline-flex items-center gap-3"><MonthPicker year={year} month={month} setYear={setYear} setMonth={setMonth} /><Button variant="navy" onClick={() => save.mutate()} disabled={save.isPending || !canSave}>{save.isPending ? 'Збереження…' : 'Зберегти показники'}</Button></span>} />
       {save.isError && <p className="text-error text-body-md mb-4">{errorMessage(save.error)}</p>}
       {save.isSuccess && <p className="text-secondary text-body-md mb-4">Збережено.</p>}
       <div className="bg-surface-container-lowest rounded-xl shadow-[0_4px_12px_rgba(26,43,60,0.05)] p-card-padding border border-surface-container overflow-x-auto">
