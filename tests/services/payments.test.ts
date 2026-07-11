@@ -3,13 +3,21 @@ import { createPayment, deletePayment, getPayment, listPayments, updatePayment }
 import { prisma } from '@/server/db'
 
 let ids: Record<string, string> = {}
+// Прибирання за локацією (тест на виключення створює ДРУГИЙ договір під тією ж
+// локацією). findFirst → null, якщо тест не створював фікстур (NOT_FOUND) — тоді
+// нічого не видаляємо (жодного deleteMany з undefined-фільтром по seed-БД).
 afterEach(async () => {
-  if (ids.lease) {
-    await prisma.payment.deleteMany({ where: { leaseId: ids.lease } })
-    await prisma.lease.deleteMany({ where: { id: ids.lease } })
-    await prisma.premises.deleteMany({ where: { id: ids.prem } })
-    await prisma.tenant.deleteMany({ where: { id: ids.ten } })
-    await prisma.location.deleteMany({ where: { name: 'Оплата' } })
+  const loc = await prisma.location.findFirst({ where: { name: 'Оплата' } })
+  if (loc) {
+    const prems = await prisma.premises.findMany({ where: { locationId: loc.id }, select: { id: true } })
+    const premIds = prems.map((p) => p.id)
+    const leases = await prisma.lease.findMany({ where: { premisesId: { in: premIds } }, select: { id: true, tenantId: true } })
+    const leaseIds = leases.map((l) => l.id)
+    await prisma.payment.deleteMany({ where: { leaseId: { in: leaseIds } } })
+    await prisma.lease.deleteMany({ where: { id: { in: leaseIds } } })
+    await prisma.premises.deleteMany({ where: { id: { in: premIds } } })
+    await prisma.tenant.deleteMany({ where: { id: { in: leases.map((l) => l.tenantId) } } })
+    await prisma.location.deleteMany({ where: { id: loc.id } })
   }
   ids = {}
 })
@@ -70,6 +78,20 @@ describe('payments service', () => {
     const list = await listPayments(leaseId)
     expect(list).toHaveLength(2)
     expect(list[0]!.date).toContain('2029-07-01') // desc за датою
+  })
+
+  it('listPayments(leaseId) ВИКЛЮЧАЄ оплати інших договорів', async () => {
+    // Без цього тесту мутант where: undefined (ігнорувати leaseId) виживає:
+    // у ізольованій БД оплати лише одного договору, тож фільтр «нічого не міняє».
+    const leaseA = await lease()
+    const prem2 = await prisma.premises.create({ data: { locationId: ids.loc, unitNumber: 'P2', type: 'офіс', areaM2: '10' } })
+    const ten2 = await prisma.tenant.create({ data: { name: 'Орендар О2' } })
+    const leaseB = (await prisma.lease.create({ data: { premisesId: prem2.id, tenantId: ten2.id, startDate: new Date(Date.UTC(2029, 0, 1)), endDate: null, rentKop: 1, garbageKop: 0 } })).id
+    await createPayment({ leaseId: leaseA, date: '2029-06-01', amountUah: '100', method: 'CASH' })
+    await createPayment({ leaseId: leaseB, date: '2029-06-01', amountUah: '999', method: 'CASH' })
+    const list = await listPayments(leaseA)
+    expect(list).toHaveLength(1)
+    expect(list.every((p) => p.leaseId === leaseA)).toBe(true)
   })
 
   it('оновлення суми переписує копійки', async () => {
