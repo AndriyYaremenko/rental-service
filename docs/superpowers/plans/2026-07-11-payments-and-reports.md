@@ -34,9 +34,11 @@ CSRF-токен — там зʼявиться клієнт, що його від
   service → json/Response), юніт-тестами не покриваються (перевіряються `npm run build`).
 - **Мандаторні тести кожної CRUD-задачі:** **get/update/delete** неіснуючого id →
   `NOT_FOUND` (усі три); форма DTO (`Object.keys().sort()` — без витоку полів БД);
-  форма елемента `listX()`; де є clearable-поле — персистенція явного `null`; де
-  вхід — сума в грн — некоректна сума → `VALIDATION_FAILED` (не 500). Кожна
-  експортована функція має бути викликана хоча б одним тестом.
+  форма елемента `listX()`; де є clearable-поле — персистенція **явного `null`**
+  (подавай `null` у сервіс, НЕ `''` — трансформа `''`→null живе в `optionalText`
+  у Zod-схемі, а service-тести минають Zod; тест на `''`→null пиши на рівні схеми,
+  не сервісу — урок Плану 2a Task 4); де вхід — сума в грн — некоректна сума →
+  `VALIDATION_FAILED` (не 500). Кожна експортована функція має тест.
 - **Teardown НІКОЛИ не викликає `deleteMany` з можливо-`undefined` фільтром id.**
   Тести бʼють по seed-`dev.db` (окремої тестової БД немає), а Prisma тлумачить
   `{ where: { leaseId: undefined } }` як «без фільтра» → знесе ВСЮ таблицю. Якщо
@@ -115,19 +117,21 @@ async function lease() {
 }
 
 describe('payments service', () => {
-  it('створює оплату; грн → копійки, дата ISO, note тримається', async () => {
+  it('створює оплату; грн → копійки, дата ISO, note зберігається', async () => {
     const leaseId = await lease()
-    const p = await createPayment({ leaseId, date: '2029-06-15', amountUah: '5000.50', method: 'CASH', note: '  за червень  ' })
+    // Service-тести минають Zod, тож note подаємо ВЖЕ чистим (трім/''→null — робота
+    // optionalText у схемі, на межі роуту, не сервісу; див. урок Плану 2a Task 4).
+    const p = await createPayment({ leaseId, date: '2029-06-15', amountUah: '5000.50', method: 'CASH', note: 'за червень' })
     expect(p.amountKop).toBe(500_050)
     expect(p.date).toContain('2029-06-15')
     expect(p.method).toBe('CASH')
     expect(p.note).toBe('за червень')
   })
 
-  it('порожня note → null (явне очищення)', async () => {
+  it('явний null у note очищає його (персистенція явного null)', async () => {
     const leaseId = await lease()
     const created = await createPayment({ leaseId, date: '2029-06-15', amountUah: '100', method: 'CARD', note: 'x' })
-    const upd = await updatePayment(created.id, { note: '' })
+    const upd = await updatePayment(created.id, { note: null })
     expect(upd.note).toBeNull()
   })
 
