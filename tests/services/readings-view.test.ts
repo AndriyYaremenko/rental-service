@@ -30,6 +30,9 @@ describe('getReadingsForMonth', () => {
     const rows = await getReadingsForMonth(2026, 6)
     const row = rows.find((r) => r.premisesId === prem)
     expect(row).toBeDefined()
+    // Точний набір ключів: ловить витік сирого рядка Prisma (напр. { ...p, ... }
+    // протік би areaM2, type, createdAt, вкладені location й readings[]).
+    expect(Object.keys(row!).sort()).toEqual(['current', 'locationName', 'premisesId', 'previous', 'unitNumber'])
     expect(row!.current).toEqual({ electricity: '150', water: '13' })
     expect(row!.previous).toEqual({ electricity: '100', water: '10' })
   })

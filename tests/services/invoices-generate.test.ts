@@ -49,8 +49,19 @@ describe('generateInvoices', () => {
     expect(r.created).toBe(1)
     const inv = await prisma.invoice.findFirstOrThrow({ where: { leaseId: lease, year: 2029, month: 6 } })
     expect(inv.totalKop).toBe(1_000_000 + 50 * 432 + Math.round(3.5 * 1250) + 30_000)
+    // Повна заморожена розбивка на перетині домен→БД (єдиному в конвеєрі).
+    // totalKop інваріантний до перестановки електрика↔вода (сума), тож саме
+    // ці per-колонки ловлять copy-paste-swap: 21600 (елек) ≠ 4375 (вода).
     expect(inv.electricityRateKop).toBe(432)
+    expect(inv.waterRateKop).toBe(1250)
+    expect(inv.electricityKop).toBe(50 * 432)
+    expect(inv.waterKop).toBe(Math.round(3.5 * 1250))
     expect(inv.prevElectricity.toString()).toBe('100')
+    expect(inv.currElectricity.toString()).toBe('150')
+    expect(inv.electricityUsed.toString()).toBe('50')
+    expect(inv.prevWater.toString()).toBe('9')
+    expect(inv.currWater.toString()).toBe('12.5')
+    expect(inv.waterUsed.toString()).toBe('3.5')
   })
 
   it('повторний виклик за той самий місяць нічого не створює (ALREADY_EXISTS)', async () => {
