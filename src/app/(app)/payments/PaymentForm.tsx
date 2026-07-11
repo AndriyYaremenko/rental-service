@@ -35,7 +35,7 @@ export function PaymentForm({ payment, leaseLabel, onClose }: { payment?: Paymen
           <option value="" disabled>Оберіть договір</option>
           {(leases.data ?? []).map((l) => <option key={l.id} value={l.id}>{leaseLabel(l.id)}</option>)}
         </Select>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Дата" type="date" required value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} error={errs.date} />
           <Input label="Сума, грн" required value={f.amountUah} onChange={(e) => setF({ ...f, amountUah: e.target.value })} error={errs.amount} placeholder="напр. 5000.00" />
         </div>

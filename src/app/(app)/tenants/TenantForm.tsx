@@ -31,7 +31,7 @@ export function TenantForm({ tenant, onClose }: { tenant?: TenantDTO; onClose: (
     <Modal title={tenant ? 'Редагувати орендаря' : 'Новий орендар'} onClose={onClose}>
       <form onSubmit={submit} className="space-y-4">
         <Input label="Назва / ПІБ" required value={f.name} onChange={set('name')} error={errs.name} />
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Input label="Телефон" value={f.phone} onChange={set('phone')} error={errs.phone} />
           <Input label="Email" type="email" value={f.email} onChange={set('email')} error={errs.email} />
         </div>
