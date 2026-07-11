@@ -99,12 +99,15 @@ export function Providers({ children }: { children: ReactNode }) {
 `src/app/layout.tsx`:
 ```tsx
 import type { Metadata } from 'next'
-import { Inter, Material_Symbols_Outlined } from 'next/font/google'
+import { Inter } from 'next/font/google'
+import localFont from 'next/font/local'
 import { Providers } from './providers'
 import './globals.css'
 
+// Material Symbols НЕ експортується з next/font/google у next@16 — self-hosted woff2
+// (завантажено з fonts.gstatic.com на етапі setup, без рантайм-CDN, §7.2).
 const inter = Inter({ subsets: ['latin', 'cyrillic'], weight: ['400', '600', '700'], variable: '--font-inter' })
-const symbols = Material_Symbols_Outlined({ weight: ['400'], variable: '--font-symbols', display: 'block' })
+const symbols = localFont({ src: './fonts/material-symbols-outlined.woff2', weight: '400', display: 'block', variable: '--font-symbols' })
 
 export const metadata: Metadata = {
   title: 'Облік Комерційної Оренди',
